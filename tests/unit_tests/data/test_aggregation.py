@@ -3261,7 +3261,7 @@ class TestTimeBarAggregator:
             (False, BarIntervalType.LEFT_OPEN, 0, 60_000_000_000),
             (False, BarIntervalType.RIGHT_OPEN, 0, 60_000_000_000),
             (True, BarIntervalType.LEFT_OPEN, 60_000_000_000, 120_000_000_000),
-            (True, BarIntervalType.RIGHT_OPEN, 0, 60_000_000_000),
+            (True, BarIntervalType.RIGHT_OPEN, 60_000_000_000, 120_000_000_000),
         ],
     )
     def test_timebar_aggregator_interval_types(
@@ -3303,3 +3303,292 @@ class TestTimeBarAggregator:
         assert len(handler) == 2
         assert handler[0].ts_event == ts_event1
         assert handler[1].ts_event == ts_event2
+
+    def test_batch_mode_respects_timestamp_on_close_for_right_open_intervals(self):
+        """Test that batch mode properly respects timestamp_on_close for RIGHT_OPEN intervals."""
+        # Arrange
+        clock = TestClock()
+        handler = []
+        instrument = AUDUSD_SIM
+        bar_spec = BarSpecification(1, BarAggregation.MINUTE, PriceType.MID)
+        bar_type = BarType(instrument.id, bar_spec)
+
+        aggregator = TimeBarAggregator(
+            instrument,
+            bar_type,
+            lambda bar: None,  # Regular handler not used in batch mode
+            clock,
+            interval_type=BarIntervalType.RIGHT_OPEN,
+            timestamp_on_close=True,
+        )
+
+        # Create test ticks
+        tick1 = QuoteTick(
+            instrument_id=instrument.id,
+            bid_price=Price.from_str("1.00000"),
+            ask_price=Price.from_str("1.00002"),
+            bid_size=Quantity.from_int(1),
+            ask_size=Quantity.from_int(1),
+            ts_event=0,
+            ts_init=0,
+        )
+
+        tick2 = QuoteTick(
+            instrument_id=instrument.id,
+            bid_price=Price.from_str("1.00001"),
+            ask_size=Quantity.from_int(1),
+            ask_price=Price.from_str("1.00003"),
+            bid_size=Quantity.from_int(1),
+            ts_event=30 * NANOSECONDS_IN_SECOND,  # 30 seconds into first interval
+            ts_init=30 * NANOSECONDS_IN_SECOND,
+        )
+
+        tick3 = QuoteTick(
+            instrument_id=instrument.id,
+            bid_price=Price.from_str("1.00002"),
+            ask_price=Price.from_str("1.00004"),
+            bid_size=Quantity.from_int(1),
+            ask_size=Quantity.from_int(1),
+            ts_event=90 * NANOSECONDS_IN_SECOND,  # 30 seconds into second interval
+            ts_init=90 * NANOSECONDS_IN_SECOND,
+        )
+
+        # Act
+        aggregator.start_batch_update(handler.append, 0)
+        aggregator.handle_quote_tick(tick1)
+        aggregator.handle_quote_tick(tick2)
+        aggregator.handle_quote_tick(tick3)
+        aggregator.stop_batch_update()
+
+        # Assert
+        assert len(handler) == 1
+        bar = handler[0]
+        # For RIGHT_OPEN with timestamp_on_close=True, ts_event should be the close time (60 seconds)
+        assert bar.ts_event == 60 * NANOSECONDS_IN_SECOND
+        assert bar.ts_init == 60 * NANOSECONDS_IN_SECOND
+
+    def test_batch_mode_respects_timestamp_on_close_false_for_right_open_intervals(self):
+        """Test that batch mode properly respects timestamp_on_close=False for RIGHT_OPEN intervals."""
+        # Arrange
+        clock = TestClock()
+        handler = []
+        instrument = AUDUSD_SIM
+        bar_spec = BarSpecification(1, BarAggregation.MINUTE, PriceType.MID)
+        bar_type = BarType(instrument.id, bar_spec)
+
+        aggregator = TimeBarAggregator(
+            instrument,
+            bar_type,
+            lambda bar: None,  # Regular handler not used in batch mode
+            clock,
+            interval_type=BarIntervalType.RIGHT_OPEN,
+            timestamp_on_close=False,
+        )
+
+        # Create test ticks
+        tick1 = QuoteTick(
+            instrument_id=instrument.id,
+            bid_price=Price.from_str("1.00000"),
+            ask_price=Price.from_str("1.00002"),
+            bid_size=Quantity.from_int(1),
+            ask_size=Quantity.from_int(1),
+            ts_event=0,
+            ts_init=0,
+        )
+
+        tick2 = QuoteTick(
+            instrument_id=instrument.id,
+            bid_price=Price.from_str("1.00001"),
+            ask_price=Price.from_str("1.00003"),
+            bid_size=Quantity.from_int(1),
+            ask_size=Quantity.from_int(1),
+            ts_event=90 * NANOSECONDS_IN_SECOND,  # 30 seconds into second interval
+            ts_init=90 * NANOSECONDS_IN_SECOND,
+        )
+
+        # Act
+        aggregator.start_batch_update(handler.append, 0)
+        aggregator.handle_quote_tick(tick1)
+        aggregator.handle_quote_tick(tick2)
+        aggregator.stop_batch_update()
+
+        # Assert
+        assert len(handler) == 1
+        bar = handler[0]
+        # For RIGHT_OPEN with timestamp_on_close=False, ts_event should be the open time (0)
+        assert bar.ts_event == 0
+        assert bar.ts_init == 60 * NANOSECONDS_IN_SECOND
+
+    def test_batch_mode_emits_bars_for_skipped_intervals_with_build_with_no_updates(self):
+        """Test that batch mode emits bars for skipped intervals when build_with_no_updates=True."""
+        # Arrange
+        clock = TestClock()
+        handler = []
+        instrument = AUDUSD_SIM
+        bar_spec = BarSpecification(1, BarAggregation.MINUTE, PriceType.MID)
+        bar_type = BarType(instrument.id, bar_spec)
+
+        aggregator = TimeBarAggregator(
+            instrument,
+            bar_type,
+            lambda bar: None,  # Regular handler not used in batch mode
+            clock,
+            interval_type=BarIntervalType.LEFT_OPEN,
+            timestamp_on_close=True,
+            build_with_no_updates=True,
+        )
+
+        # Create test ticks with large time gap to test skipped intervals
+        tick1 = QuoteTick(
+            instrument_id=instrument.id,
+            bid_price=Price.from_str("1.00000"),
+            ask_price=Price.from_str("1.00002"),
+            bid_size=Quantity.from_int(1),
+            ask_size=Quantity.from_int(1),
+            ts_event=30 * NANOSECONDS_IN_SECOND,  # 30 seconds into first interval
+            ts_init=30 * NANOSECONDS_IN_SECOND,
+        )
+
+        # Tick in the 4th interval (skipping intervals 2 and 3)
+        tick2 = QuoteTick(
+            instrument_id=instrument.id,
+            bid_price=Price.from_str("1.00001"),
+            ask_price=Price.from_str("1.00003"),
+            bid_size=Quantity.from_int(1),
+            ask_size=Quantity.from_int(1),
+            ts_event=210 * NANOSECONDS_IN_SECOND,  # 30 seconds into 4th interval
+            ts_init=210 * NANOSECONDS_IN_SECOND,
+        )
+
+        # Act
+        aggregator.start_batch_update(handler.append, 0)
+        aggregator.handle_quote_tick(tick1)
+        aggregator.handle_quote_tick(tick2)
+        aggregator.stop_batch_update()
+
+        # Assert
+        # Should emit bars for intervals 1, 2, 3 (with first having data, others empty but built)
+        assert len(handler) >= 1
+        # First bar should have the actual data
+        assert handler[0].open == Price.from_str("1.00001")  # MID price
+        assert handler[0].ts_event == 60 * NANOSECONDS_IN_SECOND  # Close of first interval
+        assert handler[0].ts_init == 60 * NANOSECONDS_IN_SECOND
+
+    def test_batch_mode_skips_bars_for_skipped_intervals_with_build_with_no_updates_false(self):
+        """Test that batch mode skips bars for skipped intervals when build_with_no_updates=False."""
+        # Arrange
+        clock = TestClock()
+        handler = []
+        instrument = AUDUSD_SIM
+        bar_spec = BarSpecification(1, BarAggregation.MINUTE, PriceType.MID)
+        bar_type = BarType(instrument.id, bar_spec)
+
+        aggregator = TimeBarAggregator(
+            instrument,
+            bar_type,
+            lambda bar: None,  # Regular handler not used in batch mode
+            clock,
+            interval_type=BarIntervalType.LEFT_OPEN,
+            timestamp_on_close=True,
+            build_with_no_updates=False,  # This should prevent empty bar emission
+        )
+
+        # Create test ticks with large time gap to test skipped intervals
+        tick1 = QuoteTick(
+            instrument_id=instrument.id,
+            bid_price=Price.from_str("1.00000"),
+            ask_price=Price.from_str("1.00002"),
+            bid_size=Quantity.from_int(1),
+            ask_size=Quantity.from_int(1),
+            ts_event=30 * NANOSECONDS_IN_SECOND,  # 30 seconds into first interval
+            ts_init=30 * NANOSECONDS_IN_SECOND,
+        )
+
+        # Tick in the 4th interval (skipping intervals 2 and 3)
+        tick2 = QuoteTick(
+            instrument_id=instrument.id,
+            bid_price=Price.from_str("1.00001"),
+            ask_price=Price.from_str("1.00003"),
+            bid_size=Quantity.from_int(1),
+            ask_size=Quantity.from_int(1),
+            ts_event=210 * NANOSECONDS_IN_SECOND,  # 30 seconds into 4th interval
+            ts_init=210 * NANOSECONDS_IN_SECOND,
+        )
+
+        # Act
+        aggregator.start_batch_update(handler.append, 0)
+        aggregator.handle_quote_tick(tick1)
+        aggregator.handle_quote_tick(tick2)
+        aggregator.stop_batch_update()
+
+        # Assert
+        # Should only emit bar for the first interval (with data)
+        assert len(handler) == 1
+        assert handler[0].open == Price.from_str("1.00001")  # MID price
+        assert handler[0].ts_event == 60 * NANOSECONDS_IN_SECOND  # Close of first interval
+
+    @pytest.mark.parametrize(
+        "interval_type, timestamp_on_close, expected_ts_event",
+        [
+            (BarIntervalType.LEFT_OPEN, True, 60 * NANOSECONDS_IN_SECOND),
+            (BarIntervalType.LEFT_OPEN, False, 0),
+            (BarIntervalType.RIGHT_OPEN, True, 60 * NANOSECONDS_IN_SECOND),
+            (BarIntervalType.RIGHT_OPEN, False, 0),
+        ],
+    )
+    def test_batch_mode_comprehensive_interval_types_and_timestamp_settings(
+        self,
+        interval_type: BarIntervalType,
+        timestamp_on_close: bool,
+        expected_ts_event: int,
+    ):
+        """Comprehensive test for all combinations of interval types and timestamp settings in batch mode."""
+        # Arrange
+        clock = TestClock()
+        handler = []
+        instrument = AUDUSD_SIM
+        bar_spec = BarSpecification(1, BarAggregation.MINUTE, PriceType.MID)
+        bar_type = BarType(instrument.id, bar_spec)
+
+        aggregator = TimeBarAggregator(
+            instrument,
+            bar_type,
+            lambda bar: None,
+            clock,
+            interval_type=interval_type,
+            timestamp_on_close=timestamp_on_close,
+        )
+
+        # Create test tick
+        tick = QuoteTick(
+            instrument_id=instrument.id,
+            bid_price=Price.from_str("1.00000"),
+            ask_price=Price.from_str("1.00002"),
+            bid_size=Quantity.from_int(1),
+            ask_size=Quantity.from_int(1),
+            ts_event=30 * NANOSECONDS_IN_SECOND,  # 30 seconds into first interval
+            ts_init=30 * NANOSECONDS_IN_SECOND,
+        )
+
+        # Act
+        aggregator.start_batch_update(handler.append, 0)
+        aggregator.handle_quote_tick(tick)
+        
+        # Trigger next interval to close current one
+        tick2 = QuoteTick(
+            instrument_id=instrument.id,
+            bid_price=Price.from_str("1.00001"),
+            ask_price=Price.from_str("1.00003"),
+            bid_size=Quantity.from_int(1),
+            ask_size=Quantity.from_int(1),
+            ts_event=90 * NANOSECONDS_IN_SECOND,  # 30 seconds into second interval
+            ts_init=90 * NANOSECONDS_IN_SECOND,
+        )
+        aggregator.handle_quote_tick(tick2)
+        aggregator.stop_batch_update()
+
+        # Assert
+        assert len(handler) >= 1
+        bar = handler[0]
+        assert bar.ts_event == expected_ts_event
+        assert bar.ts_init == 60 * NANOSECONDS_IN_SECOND

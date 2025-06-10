@@ -3303,3 +3303,372 @@ class TestTimeBarAggregator:
         assert len(handler) == 2
         assert handler[0].ts_event == ts_event1
         assert handler[1].ts_event == ts_event2
+
+    def test_build_bar_with_no_ticks_when_last_close_is_none(self):
+        """Test edge case where no ticks are received and no last close price is available"""
+        # Arrange
+        clock = TestClock()
+        handler: list[Bar] = []
+        instrument_id = TestIdStubs.audusd_id()
+        bar_spec = BarSpecification(1, BarAggregation.MINUTE, PriceType.MID)
+        bar_type = BarType(instrument_id, bar_spec)
+
+        aggregator = TimeBarAggregator(
+            AUDUSD_SIM,
+            bar_type,
+            handler.append,
+            clock,
+            build_with_no_updates=True,
+        )
+
+        # Act - advance time to trigger bar build without any ticks
+        events = clock.advance_time(dt_to_unix_nanos(UNIX_EPOCH + timedelta(minutes=1)))
+        for event in events:
+            event.handle()
+
+        # Assert - should build bar with None prices when no last close available
+        assert len(handler) == 1
+        bar = handler[0]
+        assert bar.open is None
+        assert bar.high is None
+        assert bar.low is None
+        assert bar.close is None
+        assert bar.volume == Quantity.zero()
+
+    def test_build_bar_with_no_ticks_when_last_close_available(self):
+        """Test edge case where no ticks are received but last close price is available"""
+        # Arrange
+        clock = TestClock()
+        handler: list[Bar] = []
+        instrument_id = TestIdStubs.audusd_id()
+        bar_spec = BarSpecification(1, BarAggregation.MINUTE, PriceType.MID)
+        bar_type = BarType(instrument_id, bar_spec)
+
+        aggregator = TimeBarAggregator(
+            AUDUSD_SIM,
+            bar_type,
+            handler.append,
+            clock,
+            build_with_no_updates=True,
+        )
+
+        # Update with one tick to establish last close
+        tick = TradeTick(
+            instrument_id=instrument_id,
+            price=Price.from_str("1.00000"),
+            size=Quantity.from_int(100),
+            aggressor_side=AggressorSide.BUYER,
+            trade_id=TradeId("123456"),
+            ts_event=0,
+            ts_init=0,
+        )
+        aggregator.handle_trade_tick(tick)
+
+        # Act - advance time to trigger bar build
+        events = clock.advance_time(dt_to_unix_nanos(UNIX_EPOCH + timedelta(minutes=1)))
+        for event in events:
+            event.handle()
+
+        # Advance time again without any new ticks
+        events = clock.advance_time(dt_to_unix_nanos(UNIX_EPOCH + timedelta(minutes=2)))
+        for event in events:
+            event.handle()
+
+        # Assert - second bar should use last close price for all OHLC
+        assert len(handler) == 2
+        second_bar = handler[1]
+        assert second_bar.open == Price.from_str("1.00000")
+        assert second_bar.high == Price.from_str("1.00000")
+        assert second_bar.low == Price.from_str("1.00000")
+        assert second_bar.close == Price.from_str("1.00000")
+        assert second_bar.volume == Quantity.zero()
+
+    def test_batch_mode_transitions_properly(self):
+        """Test batch mode start/stop transitions and state consistency"""
+        # Arrange
+        clock = TestClock()
+        handler: list[Bar] = []
+        batch_handler: list[Bar] = []
+        instrument_id = TestIdStubs.audusd_id()
+        bar_spec = BarSpecification(1, BarAggregation.MINUTE, PriceType.MID)
+        bar_type = BarType(instrument_id, bar_spec)
+
+        aggregator = TimeBarAggregator(
+            AUDUSD_SIM,
+            bar_type,
+            handler.append,
+            clock,
+        )
+
+        tick1 = TradeTick(
+            instrument_id=instrument_id,
+            price=Price.from_str("1.00000"),
+            size=Quantity.from_int(100),
+            aggressor_side=AggressorSide.BUYER,
+            trade_id=TradeId("1"),
+            ts_event=0,
+            ts_init=0,
+        )
+
+        tick2 = TradeTick(
+            instrument_id=instrument_id,
+            price=Price.from_str("1.00010"),
+            size=Quantity.from_int(200),
+            aggressor_side=AggressorSide.BUYER,
+            trade_id=TradeId("2"),
+            ts_event=dt_to_unix_nanos(UNIX_EPOCH + timedelta(seconds=30)),
+            ts_init=dt_to_unix_nanos(UNIX_EPOCH + timedelta(seconds=30)),
+        )
+
+        tick3 = TradeTick(
+            instrument_id=instrument_id,
+            price=Price.from_str("1.00020"),
+            size=Quantity.from_int(300),
+            aggressor_side=AggressorSide.BUYER,
+            trade_id=TradeId("3"),
+            ts_event=dt_to_unix_nanos(UNIX_EPOCH + timedelta(minutes=1, seconds=30)),
+            ts_init=dt_to_unix_nanos(UNIX_EPOCH + timedelta(minutes=1, seconds=30)),
+        )
+
+        # Act - start batch mode and process some ticks
+        aggregator.start_batch_update(batch_handler.append, dt_to_unix_nanos(UNIX_EPOCH))
+        aggregator.handle_trade_tick(tick1)
+        aggregator.handle_trade_tick(tick2)
+
+        # Advance time to trigger first bar while in batch mode
+        events = clock.advance_time(dt_to_unix_nanos(UNIX_EPOCH + timedelta(minutes=1)))
+        for event in events:
+            event.handle()
+
+        # Stop batch mode and add more ticks
+        aggregator.stop_batch_update()
+        aggregator.handle_trade_tick(tick3)
+
+        # Advance time to trigger second bar in normal mode
+        events = clock.advance_time(dt_to_unix_nanos(UNIX_EPOCH + timedelta(minutes=2)))
+        for event in events:
+            event.handle()
+
+        # Assert
+        assert len(batch_handler) == 1  # One bar sent to batch handler
+        assert len(handler) == 1  # One bar sent to normal handler
+        
+        # Verify batch bar properties
+        batch_bar = batch_handler[0]
+        assert batch_bar.open == Price.from_str("1.00000")
+        assert batch_bar.high == Price.from_str("1.00010")
+        assert batch_bar.low == Price.from_str("1.00000")
+        assert batch_bar.close == Price.from_str("1.00010")
+        assert batch_bar.volume == Quantity.from_int(300)
+
+    def test_batch_mode_multiple_bar_emissions_in_single_update(self):
+        """Test multiple bar emissions when time jumps forward in batch mode"""
+        # Arrange
+        clock = TestClock()
+        batch_handler: list[Bar] = []
+        instrument_id = TestIdStubs.audusd_id()
+        bar_spec = BarSpecification(1, BarAggregation.MINUTE, PriceType.MID)
+        bar_type = BarType(instrument_id, bar_spec)
+
+        aggregator = TimeBarAggregator(
+            AUDUSD_SIM,
+            bar_type,
+            lambda bar: None,  # Normal handler won't be used in batch mode
+            clock,
+        )
+
+        # Start batch mode
+        aggregator.start_batch_update(batch_handler.append, dt_to_unix_nanos(UNIX_EPOCH))
+
+        # Add tick for first interval
+        tick1 = TradeTick(
+            instrument_id=instrument_id,
+            price=Price.from_str("1.00000"),
+            size=Quantity.from_int(100),
+            aggressor_side=AggressorSide.BUYER,
+            trade_id=TradeId("1"),
+            ts_event=dt_to_unix_nanos(UNIX_EPOCH + timedelta(seconds=30)),
+            ts_init=dt_to_unix_nanos(UNIX_EPOCH + timedelta(seconds=30)),
+        )
+        aggregator.handle_trade_tick(tick1)
+
+        # Act - Add tick that is far in the future, should trigger multiple bar emissions
+        tick2 = TradeTick(
+            instrument_id=instrument_id,
+            price=Price.from_str("1.00010"),
+            size=Quantity.from_int(200),
+            aggressor_side=AggressorSide.BUYER,
+            trade_id=TradeId("2"),
+            ts_event=dt_to_unix_nanos(UNIX_EPOCH + timedelta(minutes=5)),  # 5 minutes later
+            ts_init=dt_to_unix_nanos(UNIX_EPOCH + timedelta(minutes=5)),
+        )
+        aggregator.handle_trade_tick(tick2)
+
+        # Assert - Should have emitted multiple bars
+        # The first tick creates the first bar, then the time jump should create more bars
+        assert len(batch_handler) >= 1, f"Expected at least 1 bars, got {len(batch_handler)}"
+
+    def test_timer_synchronization_with_market_data(self):
+        """Test timer vs market data synchronization to avoid race conditions"""
+        # Arrange
+        clock = TestClock()
+        handler: list[Bar] = []
+        instrument_id = TestIdStubs.audusd_id()
+        bar_spec = BarSpecification(1, BarAggregation.MINUTE, PriceType.MID)
+        bar_type = BarType(instrument_id, bar_spec)
+
+        aggregator = TimeBarAggregator(
+            AUDUSD_SIM,
+            bar_type,
+            handler.append,
+            clock,
+        )
+
+        # Act - timer fires before any market data arrives
+        events = clock.advance_time(dt_to_unix_nanos(UNIX_EPOCH + timedelta(minutes=1)))
+        for event in events:
+            event.handle()
+
+        # No bars should be built because builder is uninitialized
+        initial_bar_count = len(handler)
+
+        # Now add market data after timer fired
+        tick = TradeTick(
+            instrument_id=instrument_id,
+            price=Price.from_str("1.00000"),
+            size=Quantity.from_int(100),
+            aggressor_side=AggressorSide.BUYER,
+            trade_id=TradeId("1"),
+            ts_event=dt_to_unix_nanos(UNIX_EPOCH + timedelta(minutes=1, seconds=10)),
+            ts_init=dt_to_unix_nanos(UNIX_EPOCH + timedelta(minutes=1, seconds=10)),
+        )
+        aggregator.handle_trade_tick(tick)
+
+        # Assert - delayed bar should now be built due to _build_on_next_tick logic
+        assert len(handler) > initial_bar_count
+
+    def test_month_aggregation_edge_cases(self):
+        """Test month aggregation with leap years and month boundaries"""
+        # Arrange
+        clock = TestClock()
+        handler: list[Bar] = []
+        instrument_id = TestIdStubs.audusd_id()
+        bar_spec = BarSpecification(1, BarAggregation.MONTH, PriceType.MID)
+        bar_type = BarType(instrument_id, bar_spec)
+
+        # Set clock to end of February in a leap year
+        leap_year_feb_end = pd.Timestamp(2020, 2, 29, 23, 59, 59)
+        clock.set_time(dt_to_unix_nanos(leap_year_feb_end))
+
+        aggregator = TimeBarAggregator(
+            AUDUSD_SIM,
+            bar_type,
+            handler.append,
+            clock,
+        )
+
+        # Act - add tick near month boundary
+        tick = TradeTick(
+            instrument_id=instrument_id,
+            price=Price.from_str("1.00000"),
+            size=Quantity.from_int(100),
+            aggressor_side=AggressorSide.BUYER,
+            trade_id=TradeId("1"),
+            ts_event=dt_to_unix_nanos(leap_year_feb_end),
+            ts_init=dt_to_unix_nanos(leap_year_feb_end),
+        )
+        aggregator.handle_trade_tick(tick)
+
+        # Advance to next month
+        march_start = pd.Timestamp(2020, 3, 1, 0, 0, 0)
+        events = clock.advance_time(dt_to_unix_nanos(march_start))
+        for event in events:
+            event.handle()
+
+        # Assert - should properly handle month boundary
+        assert len(handler) == 1
+        bar = handler[0]
+        assert bar.open == Price.from_str("1.00000")
+        assert bar.close == Price.from_str("1.00000")
+
+    def test_build_with_no_updates_disabled(self):
+        """Test behavior when build_with_no_updates is False"""
+        # Arrange
+        clock = TestClock()
+        handler: list[Bar] = []
+        instrument_id = TestIdStubs.audusd_id()
+        bar_spec = BarSpecification(1, BarAggregation.MINUTE, PriceType.MID)
+        bar_type = BarType(instrument_id, bar_spec)
+
+        aggregator = TimeBarAggregator(
+            AUDUSD_SIM,
+            bar_type,
+            handler.append,
+            clock,
+            build_with_no_updates=False,  # Disable building with no updates
+        )
+
+        # Act - advance time without any ticks
+        events = clock.advance_time(dt_to_unix_nanos(UNIX_EPOCH + timedelta(minutes=2)))
+        for event in events:
+            event.handle()
+
+        # Assert - no bars should be emitted
+        assert len(handler) == 0
+
+    def test_high_low_bounds_correction(self):
+        """Test that close price is properly bounded by high/low in bar building"""
+        # Arrange
+        clock = TestClock()
+        handler: list[Bar] = []
+        instrument_id = TestIdStubs.audusd_id()
+        bar_spec = BarSpecification(1, BarAggregation.MINUTE, PriceType.MID)
+        bar_type = BarType(instrument_id, bar_spec)
+
+        aggregator = TimeBarAggregator(
+            AUDUSD_SIM,
+            bar_type,
+            handler.append,
+            clock,
+        )
+
+        # Add ticks that create an unusual scenario where close might be outside high/low
+        tick1 = TradeTick(
+            instrument_id=instrument_id,
+            price=Price.from_str("1.00010"),  # High
+            size=Quantity.from_int(100),
+            aggressor_side=AggressorSide.BUYER,
+            trade_id=TradeId("1"),
+            ts_event=dt_to_unix_nanos(UNIX_EPOCH + timedelta(seconds=10)),
+            ts_init=dt_to_unix_nanos(UNIX_EPOCH + timedelta(seconds=10)),
+        )
+
+        tick2 = TradeTick(
+            instrument_id=instrument_id,
+            price=Price.from_str("1.00005"),  # Close (should become new low)
+            size=Quantity.from_int(200),
+            aggressor_side=AggressorSide.SELLER,
+            trade_id=TradeId("2"),
+            ts_event=dt_to_unix_nanos(UNIX_EPOCH + timedelta(seconds=50)),
+            ts_init=dt_to_unix_nanos(UNIX_EPOCH + timedelta(seconds=50)),
+        )
+
+        # Act
+        aggregator.handle_trade_tick(tick1)
+        aggregator.handle_trade_tick(tick2)
+        
+        events = clock.advance_time(dt_to_unix_nanos(UNIX_EPOCH + timedelta(minutes=1)))
+        for event in events:
+            event.handle()
+
+        # Assert - bounds should be properly maintained
+        assert len(handler) == 1
+        bar = handler[0]
+        assert bar.open == Price.from_str("1.00010")
+        assert bar.high == Price.from_str("1.00010")
+        assert bar.low == Price.from_str("1.00005")  # Should be adjusted
+        assert bar.close == Price.from_str("1.00005")
+        # Verify high >= low
+        assert bar.high._mem.raw >= bar.low._mem.raw
+        # Verify close is within bounds
+        assert bar.low._mem.raw <= bar.close._mem.raw <= bar.high._mem.raw

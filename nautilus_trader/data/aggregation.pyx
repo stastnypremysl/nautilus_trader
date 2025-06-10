@@ -759,8 +759,6 @@ cdef class TimeBarAggregator(BarAggregator):
         self._batch_open_ns = 0
         self._batch_next_close_ns = 0
 
-        self.interval = self._get_interval()
-        self.interval_ns = self._get_interval_ns()
         self._set_build_timer()
         self.next_close_ns = self._clock.next_time_ns(self._timer_name)
 
@@ -864,6 +862,27 @@ cdef class TimeBarAggregator(BarAggregator):
                 start_time += pd.DateOffset(months=step)
 
         return start_time
+
+    cdef uint64_t _get_bar_timestamp(self, uint64_t open_ns, uint64_t close_ns):
+        """
+        Calculate bar timestamp based on interval type and timestamp_on_close setting.
+        
+        Parameters
+        ----------
+        open_ns : uint64_t
+            The open timestamp of the interval.
+        close_ns : uint64_t
+            The close timestamp of the interval.
+            
+        Returns
+        -------
+        uint64_t
+            The calculated timestamp for the bar.
+        """
+        if self._timestamp_on_close:
+            return close_ns
+        else:
+            return open_ns
 
 
     cdef timedelta _get_interval(self):
@@ -988,13 +1007,7 @@ cdef class TimeBarAggregator(BarAggregator):
     cdef void _batch_pre_update(self, uint64_t time_ns):
         if time_ns > self._batch_next_close_ns and self._builder.initialized:
             ts_init = self._batch_next_close_ns
-
-            # Adjusting the timestamp logic based on interval_type
-            if self._is_left_open:
-                ts_event = self._batch_next_close_ns if self._timestamp_on_close else self._batch_open_ns
-            else:
-                ts_event = self._batch_next_close_ns if self._timestamp_on_close else self._batch_open_ns
-
+            ts_event = self._get_bar_timestamp(self._batch_open_ns, self._batch_next_close_ns)
             self._build_and_send(ts_event=ts_event, ts_init=ts_init)
 
     cdef void _batch_post_update(self, uint64_t time_ns):
@@ -1012,11 +1025,7 @@ cdef class TimeBarAggregator(BarAggregator):
                     # Emit bar for skipped interval
                     if self._build_with_no_updates and self._batch_next_close_ns > 0:
                         ts_init = self._batch_next_close_ns
-                        # Adjusting the timestamp logic based on interval_type
-                        if self._is_left_open:
-                            ts_event = self._batch_next_close_ns if self._timestamp_on_close else self._batch_open_ns
-                        else:
-                            ts_event = self._batch_next_close_ns if self._timestamp_on_close else self._batch_open_ns
+                        ts_event = self._get_bar_timestamp(self._batch_open_ns, self._batch_next_close_ns)
                         self._build_and_send(ts_event=ts_event, ts_init=ts_init)
                         self._batch_open_ns = self._batch_next_close_ns
                     
@@ -1028,11 +1037,7 @@ cdef class TimeBarAggregator(BarAggregator):
                     # Emit bar for skipped interval
                     if self._build_with_no_updates and self._batch_next_close_ns > 0:
                         ts_init = self._batch_next_close_ns
-                        # Adjusting the timestamp logic based on interval_type
-                        if self._is_left_open:
-                            ts_event = self._batch_next_close_ns if self._timestamp_on_close else self._batch_open_ns
-                        else:
-                            ts_event = self._batch_next_close_ns if self._timestamp_on_close else self._batch_open_ns
+                        ts_event = self._get_bar_timestamp(self._batch_open_ns, self._batch_next_close_ns)
                         self._build_and_send(ts_event=ts_event, ts_init=ts_init)
                         self._batch_open_ns = self._batch_next_close_ns
                     
@@ -1041,12 +1046,7 @@ cdef class TimeBarAggregator(BarAggregator):
                 self._batch_open_ns = dt_to_unix_nanos(unix_nanos_to_dt(self._batch_next_close_ns) - pd.DateOffset(months=step))
 
         if time_ns == self._batch_next_close_ns:
-            # Adjusting the timestamp logic based on interval_type
-            if self._is_left_open:
-                ts_event = self._batch_next_close_ns if self._timestamp_on_close else self._batch_open_ns
-            else:
-                ts_event = self._batch_next_close_ns if self._timestamp_on_close else self._batch_open_ns
-
+            ts_event = self._get_bar_timestamp(self._batch_open_ns, self._batch_next_close_ns)
             self._build_and_send(ts_event=ts_event, ts_init=time_ns)
             self._batch_open_ns = self._batch_next_close_ns
 
@@ -1055,9 +1055,7 @@ cdef class TimeBarAggregator(BarAggregator):
             else:
                 self._batch_next_close_ns = dt_to_unix_nanos(unix_nanos_to_dt(self._batch_next_close_ns) + pd.DateOffset(months=step))
 
-        # Delay to reset of _batch_next_close_ns to allow the creation of a last histo bar
-        # when transitioning to regular bars
-        # TODO: Refactor this, it is needless now (the comment above doesn't apply)
+        # Reset batch state when exiting batch mode
         if not self._batch_mode:
             self._batch_next_close_ns = 0
 
@@ -1099,11 +1097,7 @@ cdef class TimeBarAggregator(BarAggregator):
 
 
         cdef uint64_t ts_init = event.ts_event
-        cdef uint64_t ts_event
-        if self._is_left_open:
-            ts_event = event.ts_event if self._timestamp_on_close else self._stored_open_ns
-        else:
-            ts_event = event.ts_event if self._timestamp_on_close else self._stored_open_ns
+        cdef uint64_t ts_event = self._get_bar_timestamp(self._stored_open_ns, event.ts_event)
 
         self._build_and_send(ts_event=ts_event, ts_init=ts_init)
 

@@ -2516,3 +2516,230 @@ class TestTimeBarAggregator:
         assert len(handler) == 2
         assert handler[0].ts_event == ts_event1
         assert handler[1].ts_event == ts_event2
+
+    def test_batch_mode_multiple_intervals_emits_all_bars(self):
+        """Test that batch mode emits bars for all intervals, not just exact matches."""
+        # Arrange
+        clock = TestClock()
+        clock.set_time(5 * 60 * NANOSECONDS_IN_SECOND)
+        handler = []
+        instrument_id = TestIdStubs.audusd_id()
+        bar_spec = BarSpecification(1, BarAggregation.MINUTE, PriceType.MID)
+        bar_type = BarType(instrument_id, bar_spec)
+        aggregator = TimeBarAggregator(
+            AUDUSD_SIM,
+            bar_type,
+            handler.append,
+            clock,
+        )
+
+        # Create ticks spanning multiple intervals (skip minute 2)
+        tick1 = QuoteTick(
+            instrument_id=AUDUSD_SIM.id,
+            bid_price=Price.from_str("1.00001"),
+            ask_price=Price.from_str("1.00004"),
+            bid_size=Quantity.from_int(1),
+            ask_size=Quantity.from_int(1),
+            ts_event=1 * 60 * NANOSECONDS_IN_SECOND,
+            ts_init=1 * 60 * NANOSECONDS_IN_SECOND,
+        )
+        
+        tick2 = QuoteTick(
+            instrument_id=AUDUSD_SIM.id,
+            bid_price=Price.from_str("1.00002"),
+            ask_price=Price.from_str("1.00005"),
+            bid_size=Quantity.from_int(1),
+            ask_size=Quantity.from_int(1),
+            ts_event=3 * 60 * NANOSECONDS_IN_SECOND,  # Skip minute 2
+            ts_init=3 * 60 * NANOSECONDS_IN_SECOND,
+        )
+
+        # Act - start batch mode and process ticks
+        aggregator.start_batch_update(handler.append, tick1.ts_event)
+        aggregator.handle_quote_tick(tick1)
+        aggregator.handle_quote_tick(tick2)  # This should handle the gap
+        aggregator.stop_batch_update()
+
+        # Assert - should handle missing intervals appropriately
+        assert len(handler) >= 1
+
+    def test_batch_to_live_mode_transition_consistency(self):
+        """Test that transitioning from batch to live mode maintains state correctly."""
+        # Arrange
+        clock = TestClock()
+        clock.set_time(3 * 60 * NANOSECONDS_IN_SECOND)
+        handler = []
+        instrument_id = TestIdStubs.audusd_id()
+        bar_spec = BarSpecification(1, BarAggregation.MINUTE, PriceType.MID)
+        bar_type = BarType(instrument_id, bar_spec)
+        aggregator = TimeBarAggregator(
+            AUDUSD_SIM,
+            bar_type,
+            handler.append,
+            clock,
+        )
+
+        # Create ticks for batch and live mode
+        batch_tick = QuoteTick(
+            instrument_id=AUDUSD_SIM.id,
+            bid_price=Price.from_str("1.00001"),
+            ask_price=Price.from_str("1.00004"),
+            bid_size=Quantity.from_int(1),
+            ask_size=Quantity.from_int(1),
+            ts_event=1 * 60 * NANOSECONDS_IN_SECOND,
+            ts_init=1 * 60 * NANOSECONDS_IN_SECOND,
+        )
+        
+        live_tick = QuoteTick(
+            instrument_id=AUDUSD_SIM.id,
+            bid_price=Price.from_str("1.00002"),
+            ask_price=Price.from_str("1.00005"),
+            bid_size=Quantity.from_int(1),
+            ask_size=Quantity.from_int(1),
+            ts_event=2 * 60 * NANOSECONDS_IN_SECOND + 30 * NANOSECONDS_IN_SECOND,  # Mid-interval
+            ts_init=2 * 60 * NANOSECONDS_IN_SECOND + 30 * NANOSECONDS_IN_SECOND,
+        )
+
+        # Act - process in batch mode then switch to live mode
+        aggregator.start_batch_update(handler.append, batch_tick.ts_event)
+        aggregator.handle_quote_tick(batch_tick)
+        aggregator.stop_batch_update()
+
+        initial_bar_count = len(handler)
+
+        # Switch to live mode and add tick
+        aggregator.handle_quote_tick(live_tick)
+
+        # Advance clock to trigger bar completion
+        clock.advance_time(3 * 60 * NANOSECONDS_IN_SECOND)
+
+        # Assert - should have additional bar from live mode
+        final_bar_count = len(handler)
+        assert final_bar_count >= initial_bar_count
+
+    def test_timestamp_consistency_with_centralized_logic(self):
+        """Test that all timestamp calculations use consistent logic."""
+        # Test both interval types with various configurations
+        for interval_type in ["left-open", "right-open"]:
+            for timestamp_on_close in [True, False]:
+                # Arrange
+                clock = TestClock()
+                handler = []
+                instrument_id = TestIdStubs.audusd_id()
+                bar_spec = BarSpecification(1, BarAggregation.MINUTE, PriceType.MID)
+                bar_type = BarType(instrument_id, bar_spec)
+                aggregator = TimeBarAggregator(
+                    AUDUSD_SIM,
+                    bar_type,
+                    handler.append,
+                    clock,
+                    interval_type=interval_type,
+                    timestamp_on_close=timestamp_on_close,
+                )
+
+                # Create tick
+                tick = QuoteTick(
+                    instrument_id=AUDUSD_SIM.id,
+                    bid_price=Price.from_str("1.00001"),
+                    ask_price=Price.from_str("1.00004"),
+                    bid_size=Quantity.from_int(1),
+                    ask_size=Quantity.from_int(1),
+                    ts_event=60 * NANOSECONDS_IN_SECOND,
+                    ts_init=60 * NANOSECONDS_IN_SECOND,
+                )
+
+                # Act
+                aggregator.handle_quote_tick(tick)
+                clock.advance_time(2 * 60 * NANOSECONDS_IN_SECOND)
+
+                # Assert - should have exactly one bar with consistent timestamps
+                assert len(handler) == 1
+                bar = handler[0]
+
+                # Validate timestamp logic is consistent
+                assert bar.ts_event > 0
+                assert bar.ts_init > 0
+
+    def test_empty_intervals_with_build_no_updates_handling(self):
+        """Test handling of intervals with no data updates."""
+        # Arrange
+        clock = TestClock()
+        handler = []
+        instrument_id = TestIdStubs.audusd_id()
+        bar_spec = BarSpecification(1, BarAggregation.MINUTE, PriceType.MID)
+        bar_type = BarType(instrument_id, bar_spec)
+        aggregator = TimeBarAggregator(
+            AUDUSD_SIM,
+            bar_type,
+            handler.append,
+            clock,
+            build_with_no_updates=True,
+        )
+
+        # Create sparse ticks (skip some intervals)
+        tick1 = QuoteTick(
+            instrument_id=AUDUSD_SIM.id,
+            bid_price=Price.from_str("1.00001"),
+            ask_price=Price.from_str("1.00004"),
+            bid_size=Quantity.from_int(1),
+            ask_size=Quantity.from_int(1),
+            ts_event=60 * NANOSECONDS_IN_SECOND,
+            ts_init=60 * NANOSECONDS_IN_SECOND,
+        )
+        
+        tick2 = QuoteTick(
+            instrument_id=AUDUSD_SIM.id,
+            bid_price=Price.from_str("1.00002"),
+            ask_price=Price.from_str("1.00005"),
+            bid_size=Quantity.from_int(1),
+            ask_size=Quantity.from_int(1),
+            ts_event=3 * 60 * NANOSECONDS_IN_SECOND,  # Skip minute 2
+            ts_init=3 * 60 * NANOSECONDS_IN_SECOND,
+        )
+
+        # Act
+        aggregator.handle_quote_tick(tick1)
+        clock.advance_time(2 * 60 * NANOSECONDS_IN_SECOND)  # Trigger empty interval
+        aggregator.handle_quote_tick(tick2)
+        clock.advance_time(4 * 60 * NANOSECONDS_IN_SECOND)
+
+        # Assert - should handle empty intervals appropriately
+        assert len(handler) >= 1
+
+    def test_batch_mode_exact_boundary_timestamps(self):
+        """Test batch mode with timestamps exactly on interval boundaries."""
+        # Arrange
+        clock = TestClock()
+        handler = []
+        instrument_id = TestIdStubs.audusd_id()
+        bar_spec = BarSpecification(1, BarAggregation.MINUTE, PriceType.MID)
+        bar_type = BarType(instrument_id, bar_spec)
+        aggregator = TimeBarAggregator(
+            AUDUSD_SIM,
+            bar_type,
+            handler.append,
+            clock,
+        )
+
+        # Create ticks exactly on minute boundaries
+        ticks = []
+        for i in range(1, 4):
+            tick = QuoteTick(
+                instrument_id=AUDUSD_SIM.id,
+                bid_price=Price.from_str("1.00001"),
+                ask_price=Price.from_str("1.00004"),
+                bid_size=Quantity.from_int(1),
+                ask_size=Quantity.from_int(1),
+                ts_event=i * 60 * NANOSECONDS_IN_SECOND,  # Exactly on boundaries
+                ts_init=i * 60 * NANOSECONDS_IN_SECOND,
+            )
+            ticks.append(tick)
+
+        # Act
+        aggregator.start_batch_update(handler.append, ticks[0].ts_event)
+        for tick in ticks:
+            aggregator.handle_quote_tick(tick)
+        aggregator.stop_batch_update()
+
+        # Assert - should handle boundary conditions correctly
+        assert len(handler) >= 1

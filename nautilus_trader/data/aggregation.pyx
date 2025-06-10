@@ -246,9 +246,14 @@ cdef class BarBuilder:
             self._low = self._last_close
             self._close = self._last_close
 
+        # Ensure close price is within high/low bounds (similar to Rust implementation)
+        if self._close is not None and self._low is not None:
+            if self._close._mem.raw < self._low._mem.raw:
+                self._low = self._close
 
-        self._low._mem.raw = min(self._close._mem.raw, self._low._mem.raw)
-        self._high._mem.raw = max(self._close._mem.raw, self._high._mem.raw)
+        if self._close is not None and self._high is not None:
+            if self._close._mem.raw > self._high._mem.raw:
+                self._high = self._close
 
         cdef Bar bar = Bar(
             bar_type=self._bar_type,
@@ -957,12 +962,14 @@ cdef class TimeBarAggregator(BarAggregator):
         if self._skip_first_non_full_bar:
             self._builder.reset()
             self._skip_first_non_full_bar = False
-        # TODO: Test this behavior
         elif not self._build_with_no_updates and self._builder.count == 0:
+            # Don't build when no updates and build_with_no_updates is False
             pass
-        elif not self._builder.initialized:
+        elif not self._builder.initialized and not self._build_with_no_updates:
+            # Don't build uninitialized builder when build_with_no_updates is False
             pass
         else:
+            # Build and send bar (handles both initialized and uninitialized builders when appropriate)
             BarAggregator._build_and_send(self, ts_event, ts_init)
 
     def _start_batch_time(self, uint64_t time_ns):
@@ -1006,19 +1013,33 @@ cdef class TimeBarAggregator(BarAggregator):
             return
 
         if time_ns > self._batch_next_close_ns:
-            # We ensure that _batch_next_close_ns and _batch_open_ns are coherent with the last builder update
+            # Emit bars for any skipped intervals to ensure no gaps
             if self.bar_type.spec.aggregation != BarAggregation.MONTH:
                 while self._batch_next_close_ns < time_ns:
-                    #TODO: Potential bug: No bar emitted
+                    # Emit bar for the current interval if builder has data
+                    if self._builder.initialized:
+                        if self._is_left_open:
+                            ts_event = self._batch_next_close_ns if self._timestamp_on_close else self._batch_open_ns
+                        else:
+                            ts_event = self._batch_open_ns
+                        self._build_and_send(ts_event=ts_event, ts_init=self._batch_next_close_ns)
+                    
+                    # Advance to next interval
                     self._batch_next_close_ns += self.interval_ns
-
-                self._batch_open_ns = self._batch_next_close_ns - self.interval_ns
+                    self._batch_open_ns = self._batch_next_close_ns - self.interval_ns
             else:
                 while self._batch_next_close_ns < time_ns:
-                    #TODO: Potential bug: No bar emitted
+                    # Emit bar for the current interval if builder has data
+                    if self._builder.initialized:
+                        if self._is_left_open:
+                            ts_event = self._batch_next_close_ns if self._timestamp_on_close else self._batch_open_ns
+                        else:
+                            ts_event = self._batch_open_ns
+                        self._build_and_send(ts_event=ts_event, ts_init=self._batch_next_close_ns)
+                    
+                    # Advance to next interval
                     self._batch_next_close_ns = dt_to_unix_nanos(unix_nanos_to_dt(self._batch_next_close_ns) + pd.DateOffset(months=step))
-
-                self._batch_open_ns = dt_to_unix_nanos(unix_nanos_to_dt(self._batch_next_close_ns) - pd.DateOffset(months=step))
+                    self._batch_open_ns = dt_to_unix_nanos(unix_nanos_to_dt(self._batch_next_close_ns) - pd.DateOffset(months=step))
 
         if time_ns == self._batch_next_close_ns:
             # Adjusting the timestamp logic based on interval_type
@@ -1035,9 +1056,7 @@ cdef class TimeBarAggregator(BarAggregator):
             else:
                 self._batch_next_close_ns = dt_to_unix_nanos(unix_nanos_to_dt(self._batch_next_close_ns) + pd.DateOffset(months=step))
 
-        # Delay to reset of _batch_next_close_ns to allow the creation of a last histo bar
-        # when transitioning to regular bars
-        # TODO: Refactor this, it is needless now (the comment above doesn't apply)
+        # Reset batch state when exiting batch mode
         if not self._batch_mode:
             self._batch_next_close_ns = 0
 
@@ -1046,6 +1065,22 @@ cdef class TimeBarAggregator(BarAggregator):
             self._batch_pre_update(ts_event)
 
         self._builder.update(price, size, ts_event)
+
+        if self._build_on_next_tick:
+            if ts_event <= self._stored_close_ns:
+                ts_init = ts_event
+
+                # Adjusting the timestamp logic based on interval_type
+                if self._is_left_open:
+                    ts_event = self._stored_close_ns if self._timestamp_on_close else self._stored_open_ns
+                else:
+                    ts_event = self._stored_open_ns
+
+                self._build_and_send(ts_event=ts_event, ts_init=ts_init)
+
+            # Reset flag and clear stored close
+            self._build_on_next_tick = False
+            self._stored_close_ns = 0
 
         if self._batch_next_close_ns != 0:
             self._batch_post_update(ts_event)
@@ -1056,10 +1091,33 @@ cdef class TimeBarAggregator(BarAggregator):
 
         self._builder.update_bar(bar, volume, ts_init)
 
+        if self._build_on_next_tick:
+            if ts_init <= self._stored_close_ns:
+                # Adjusting the timestamp logic based on interval_type
+                if self._is_left_open:
+                    ts_event = self._stored_close_ns if self._timestamp_on_close else self._stored_open_ns
+                else:
+                    ts_event = self._stored_open_ns
+
+                self._build_and_send(ts_event=ts_event, ts_init=ts_init)
+
+            # Reset flag and clear stored close
+            self._build_on_next_tick = False
+            self._stored_close_ns = 0
+
         if self._batch_next_close_ns != 0:
             self._batch_post_update(ts_init)
 
     cpdef void _build_bar(self, TimeEvent event):
+        if not self._builder.initialized:
+            # Set flag to build on next tick to avoid race condition between data update and timer
+            self._build_on_next_tick = True
+            self._stored_close_ns = self.next_close_ns
+            return
+
+        if not self._build_with_no_updates and self._builder.count == 0:
+            return  # Do not build and emit bar
+
         cdef int step = self.bar_type.spec.step
 
         if self.bar_type.spec.aggregation != BarAggregation.MONTH:
@@ -1076,7 +1134,6 @@ cdef class TimeBarAggregator(BarAggregator):
             )
 
             self.next_close_ns = dt_to_unix_nanos(alert_time)
-
 
         cdef uint64_t ts_init = event.ts_event
         cdef uint64_t ts_event

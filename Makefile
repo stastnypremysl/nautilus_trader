@@ -37,7 +37,7 @@ build-dry-run:
 	DRY_RUN=true uv run --active --no-sync build.py
 
 .PHONY: clean
-clean:
+clean: clean-build-artifacts clean-caches
 	find . -type d -name "__pycache__" -not -path "./.venv*" -print0 | xargs -0 rm -rf
 	find . -type f -a \( -name "*.so" -o -name "*.dll" -o -name "*.dylib" \) -not -path "./.venv*" -print0 | xargs -0 rm -f
 	find . -type f -a \( -name "*.pyc" -o -name "*.pyo" \) -not -path "./.venv*" -print0 | xargs -0 rm -f
@@ -52,7 +52,8 @@ clean:
 
 .PHONY: clean-build-artifacts
 clean-build-artifacts:
-	@echo "Cleaning build artifacts to free disk space..."
+	@echo "Cleaning build artifacts..."
+
 	# Clean Rust build artifacts (keep final libraries)
 	find target -name "*.rlib" -delete 2>/dev/null || true
 	find target -name "*.rmeta" -delete 2>/dev/null || true
@@ -66,10 +67,7 @@ clean-build-artifacts:
 
 .PHONY: clean-caches
 clean-caches:
-	@echo "Cleaning caches to free disk space..."
-	# Prune uv cache
 	-uv cache prune --keep-versions 2 2>/dev/null
-	# Clean cargo cache
 	-cargo clean 2>/dev/null
 
 .PHONY: distclean

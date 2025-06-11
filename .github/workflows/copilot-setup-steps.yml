@@ -6,6 +6,7 @@ jobs:
       run:
         shell: bash
     runs-on: ubuntu-22.04
+    timeout-minutes: 59
     env:
       BUILD_MODE: debug
       RUST_BACKTRACE: 1
@@ -43,16 +44,5 @@ jobs:
         uses: ./.github/actions/common-setup
         with:
           python-version: 3.13
-
-      - name: Install Nautilus CLI and run init postgres
-        run: |
-          make install-cli
-          nautilus database init --schema ${{ github.workspace }}/schema/sql
-        env:
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: 5432
-          POSTGRES_USERNAME: postgres
-          POSTGRES_PASSWORD: pass
-          POSTGRES_DATABASE: nautilus
 
 

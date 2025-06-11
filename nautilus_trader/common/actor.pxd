@@ -328,7 +328,7 @@ cdef class Actor(Component):
 
 # -- VALIDATIONS ------------------------------------------------------------------------------
 
-    cdef void _validate_datetime_range(self, datetime start, datetime end)
+    cdef tuple _validate_datetime_range(self, datetime start, datetime end)
 
 # -- EGRESS ---------------------------------------------------------------------------------------
 

@@ -2404,7 +2404,7 @@ cdef class Actor(Component):
 
 # -- VALIDATIONS -------------------------------------------------------------------------
 
-    cdef void _validate_datetime_range(
+    cdef tuple _validate_datetime_range(
         self,
         datetime start,
         datetime end,
@@ -2416,8 +2416,13 @@ cdef class Actor(Component):
         ----------
         start : datetime
             The start datetime (UTC) of request time range.
-        end : datetime
+        end : datetime, optional
             The end datetime (UTC) of request time range.
+
+        Returns
+        -------
+        tuple[datetime, datetime]
+            The validated start and end datetimes.
 
         Raises
         ------
@@ -2427,9 +2432,12 @@ cdef class Actor(Component):
         """
         Condition.not_none(start, "start")
         cdef datetime now = self.clock.utc_now()
+        if end is None:
+            end = now
         Condition.is_true(start < now, "start was >= now")            
         Condition.is_true(end <= now, "end was > now")
         Condition.is_true(start < end, "start was >= end")
+        return (start, end)
 
 # -- REQUESTS -------------------------------------------------------------------------------------
 
@@ -2494,10 +2502,7 @@ cdef class Actor(Component):
         Condition.not_none(client_id, "client_id")
         Condition.not_none(data_type, "data_type")
 
-        Condition.not_none(start, "start")
-        if end is None:
-            end = self.clock.utc_now()
-        self._validate_datetime_range(start, end)
+        start, end = self._validate_datetime_range(start, end)
         Condition.callable_or_none(callback, "callback")
 
         params = params if params else {}
@@ -2586,10 +2591,7 @@ cdef class Actor(Component):
         Condition.is_true(self.trader_id is not None, "The actor has not been registered")
         Condition.not_none(instrument_id, "instrument_id")
 
-        Condition.not_none(start, "start")
-        if end is None:
-            end = self.clock.utc_now()
-        self._validate_datetime_range(start, end)
+        start, end = self._validate_datetime_range(start, end)
         Condition.callable_or_none(callback, "callback")
 
         params = params if params else {}
@@ -2677,10 +2679,7 @@ cdef class Actor(Component):
         Condition.is_true(self.trader_id is not None, "The actor has not been registered")
         Condition.not_none(venue, "venue")
 
-        Condition.not_none(start, "start")
-        if end is None:
-            end = self.clock.utc_now()
-        self._validate_datetime_range(start, end)
+        start, end = self._validate_datetime_range(start, end)
         Condition.callable_or_none(callback, "callback")
 
         params = params if params else {}
@@ -2836,10 +2835,7 @@ cdef class Actor(Component):
         Condition.is_true(self.trader_id is not None, "The actor has not been registered")
         Condition.not_none(instrument_id, "instrument_id")
 
-        Condition.not_none(start, "start")
-        if end is None:
-            end = self.clock.utc_now()
-        self._validate_datetime_range(start, end)
+        start, end = self._validate_datetime_range(start, end)
         Condition.callable_or_none(callback, "callback")
 
         params = params if params else {}
@@ -2933,10 +2929,7 @@ cdef class Actor(Component):
         Condition.is_true(self.trader_id is not None, "The actor has not been registered")
         Condition.not_none(instrument_id, "instrument_id")
 
-        Condition.not_none(start, "start")
-        if end is None:
-            end = self.clock.utc_now()
-        self._validate_datetime_range(start, end)
+        start, end = self._validate_datetime_range(start, end)
         Condition.callable_or_none(callback, "callback")
 
         params = params if params else {}
@@ -3030,10 +3023,7 @@ cdef class Actor(Component):
         Condition.is_true(self.trader_id is not None, "The actor has not been registered")
         Condition.not_none(bar_type, "bar_type")
 
-        Condition.not_none(start, "start")
-        if end is None:
-            end = self.clock.utc_now()
-        self._validate_datetime_range(start, end)
+        start, end = self._validate_datetime_range(start, end)
         Condition.callable_or_none(callback, "callback")
 
         params = params if params else {}
@@ -3144,10 +3134,7 @@ cdef class Actor(Component):
         Condition.not_empty(bar_types, "bar_types")
         Condition.list_type(bar_types, BarType, "bar_types")
 
-        Condition.not_none(start, "start")
-        if end is None:
-            end = self.clock.utc_now()
-        self._validate_datetime_range(start, end)
+        start, end = self._validate_datetime_range(start, end)
         Condition.callable_or_none(callback, "callback")
 
         for bar_type in bar_types:

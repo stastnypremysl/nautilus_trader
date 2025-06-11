@@ -302,7 +302,7 @@ class InteractiveBrokersDataClient(LiveMarketDataClient):
             self._log.warning(f"Instrument for {request.instrument_id} not available")
             return
 
-        self._handle_instrument(instrument, request.id, request.params)
+        self._handle_instrument(instrument, request.id, request.params, request.start, request.end)
 
     async def _request_instruments(self, request: RequestInstruments) -> None:
         # We ensure existing instruments in the cache have their IB representations loaded as well in the adapter

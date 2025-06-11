@@ -476,7 +476,7 @@ class BybitDataClient(LiveMarketDataClient):
             self._log.error(f"Cannot find instrument for {request.instrument_id}")
             return
 
-        self._handle_instrument(instrument, request.id, request.params)
+        self._handle_instrument(instrument, request.id, request.params, request.start, request.end)
 
     async def _request_instruments(self, request: RequestInstruments) -> None:
         if request.start is not None:
@@ -500,6 +500,8 @@ class BybitDataClient(LiveMarketDataClient):
             target_instruments,
             request.id,
             request.params,
+            request.start,
+            request.end,
         )
 
     async def _request_quote_ticks(self, request: RequestQuoteTicks) -> None:

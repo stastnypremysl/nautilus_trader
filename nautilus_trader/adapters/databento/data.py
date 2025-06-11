@@ -889,7 +889,7 @@ class DatabentoDataClient(LiveMarketDataClient):
             )
             return
 
-        self._handle_instrument(instruments[0], request.id, request.params)
+        self._handle_instrument(instruments[0], request.id, request.params, request.start, request.end)
 
     async def _request_instruments(self, request: RequestInstruments) -> None:
         dataset: Dataset = self._loader.get_dataset_for_venue(request.venue)
@@ -919,7 +919,7 @@ class DatabentoDataClient(LiveMarketDataClient):
         )
         instruments = instruments_from_pyo3(pyo3_instruments)
 
-        self._handle_instruments(instruments, request.venue, request.id, request.params)
+        self._handle_instruments(request.venue, instruments, request.id, request.params, request.start, request.end)
 
     async def _request_quote_ticks(self, request: RequestQuoteTicks) -> None:
         dataset: Dataset = self._loader.get_dataset_for_venue(request.instrument_id.venue)

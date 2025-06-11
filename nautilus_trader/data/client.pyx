@@ -1050,11 +1050,11 @@ cdef class MarketDataClient(DataClient):
     def _handle_data_py(self, Data data):
         self._handle_data(data)
 
-    def _handle_instrument_py(self, Instrument instrument, UUID4 correlation_id, dict[str, object] params = None):
-        self._handle_instrument(instrument, correlation_id, params)
+    def _handle_instrument_py(self, Instrument instrument, UUID4 correlation_id, dict[str, object] params = None, datetime start = None, datetime end = None):
+        self._handle_instrument(instrument, correlation_id, params, start, end)
 
-    def _handle_instruments_py(self, Venue venue, list instruments, UUID4 correlation_id, dict[str, object] params = None):
-        self._handle_instruments(venue, instruments, correlation_id, params)
+    def _handle_instruments_py(self, Venue venue, list instruments, UUID4 correlation_id, dict[str, object] params = None, datetime start = None, datetime end = None):
+        self._handle_instruments(venue, instruments, correlation_id, params, start, end)
 
     def _handle_quote_ticks_py(self, InstrumentId instrument_id, list ticks, UUID4 correlation_id, dict[str, object] params = None, datetime start = None, datetime end = None):
         self._handle_quote_ticks(instrument_id, ticks, correlation_id, params, start, end)
@@ -1073,7 +1073,7 @@ cdef class MarketDataClient(DataClient):
     cpdef void _handle_data(self, Data data):
         self._msgbus.send(endpoint="DataEngine.process", msg=data)
 
-    cpdef void _handle_instrument(self, Instrument instrument, UUID4 correlation_id, dict[str, object] params):
+    cpdef void _handle_instrument(self, Instrument instrument, UUID4 correlation_id, dict[str, object] params, datetime start = None, datetime end = None):
         cdef DataResponse response = DataResponse(
             client_id=self.id,
             venue=instrument.venue,
@@ -1082,14 +1082,14 @@ cdef class MarketDataClient(DataClient):
             correlation_id=correlation_id,
             response_id=UUID4(),
             ts_init=self._clock.timestamp_ns(),
-            start=None,
-            end=None,
+            start=start,
+            end=end,
             params=params,
         )
 
         self._msgbus.send(endpoint="DataEngine.response", msg=response)
 
-    cpdef void _handle_instruments(self, Venue venue, list instruments, UUID4 correlation_id, dict[str, object] params):
+    cpdef void _handle_instruments(self, Venue venue, list instruments, UUID4 correlation_id, dict[str, object] params, datetime start = None, datetime end = None):
         cdef DataResponse response = DataResponse(
             client_id=self.id,
             venue=venue,
@@ -1098,8 +1098,8 @@ cdef class MarketDataClient(DataClient):
             correlation_id=correlation_id,
             response_id=UUID4(),
             ts_init=self._clock.timestamp_ns(),
-            start=None,
-            end=None,
+            start=start,
+            end=end,
             params=params,
         )
 

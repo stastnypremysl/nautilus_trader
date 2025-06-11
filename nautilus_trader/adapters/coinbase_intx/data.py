@@ -276,7 +276,7 @@ class CoinbaseIntxDataClient(LiveMarketDataClient):
             self._log.error(f"Cannot find instrument for {request.instrument_id}")
             return
 
-        self._handle_instrument(instrument, request.id, request.params)
+        self._handle_instrument(instrument, request.id, request.params, request.start, request.end)
 
     async def _request_instruments(self, request: RequestInstruments) -> None:
         if request.start is not None:
@@ -292,10 +292,12 @@ class CoinbaseIntxDataClient(LiveMarketDataClient):
         instruments = self._instrument_provider.get_all()
 
         self._handle_instruments(
-            instruments,
             request.venue,
+            instruments,
             request.id,
             request.params,
+            request.start,
+            request.end,
         )
 
     async def _request_quote_ticks(self, request: RequestQuoteTicks) -> None:

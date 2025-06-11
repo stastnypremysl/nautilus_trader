@@ -100,7 +100,11 @@ jobs:
         uses: ./.github/actions/common-test-data
 
       - name: Run Rust tests
-        run: make cargo-test
+        run: |
+          ./scripts/ci/disk-space-monitor.sh monitor "before Rust tests (Linux x86)"
+          make cargo-test
+          ./scripts/ci/disk-space-monitor.sh cleanup
+          ./scripts/ci/disk-space-monitor.sh monitor "after Rust tests (Linux x86)"
 
       - name: Build and install wheel
         uses: ./.github/actions/common-wheel-build
@@ -110,7 +114,10 @@ jobs:
 
       - name: Run tests
         run: |
+          ./scripts/ci/disk-space-monitor.sh monitor "before Python tests (Linux x86)"
           uv run --no-sync pytest --ignore=tests/performance_tests
+          ./scripts/ci/disk-space-monitor.sh cleanup
+          ./scripts/ci/disk-space-monitor.sh monitor "after Python tests (Linux x86)"
 
       - name: Upload wheel artifact
         uses: ./.github/actions/upload-artifact-wheel
@@ -189,7 +196,11 @@ jobs:
         uses: ./.github/actions/common-test-data
 
       - name: Run Rust tests
-        run: make cargo-test
+        run: |
+          ./scripts/ci/disk-space-monitor.sh monitor "before Rust tests (Linux ARM64)"
+          make cargo-test
+          ./scripts/ci/disk-space-monitor.sh cleanup
+          ./scripts/ci/disk-space-monitor.sh monitor "after Rust tests (Linux ARM64)"
 
       - name: Build and install wheel
         uses: ./.github/actions/common-wheel-build
@@ -199,7 +210,10 @@ jobs:
 
       - name: Run tests
         run: |
+          ./scripts/ci/disk-space-monitor.sh monitor "before Python tests (Linux ARM64)"
           uv run --no-sync pytest --ignore=tests/performance_tests
+          ./scripts/ci/disk-space-monitor.sh cleanup
+          ./scripts/ci/disk-space-monitor.sh monitor "after Python tests (Linux ARM64)"
 
       - name: Upload wheel artifact
         uses: ./.github/actions/upload-artifact-wheel
@@ -247,7 +261,11 @@ jobs:
         uses: ./.github/actions/common-test-data
 
       - name: Run Rust tests
-        run: make cargo-test
+        run: |
+          ./scripts/ci/disk-space-monitor.sh monitor "before Rust tests (macOS)"
+          make cargo-test
+          ./scripts/ci/disk-space-monitor.sh cleanup
+          ./scripts/ci/disk-space-monitor.sh monitor "after Rust tests (macOS)"
 
       - name: Build and install wheel
         uses: ./.github/actions/common-wheel-build
@@ -257,7 +275,10 @@ jobs:
 
       - name: Run tests
         run: |
+          ./scripts/ci/disk-space-monitor.sh monitor "before Python tests (macOS)"
           uv run --no-sync pytest --ignore=tests/performance_tests
+          ./scripts/ci/disk-space-monitor.sh cleanup
+          ./scripts/ci/disk-space-monitor.sh monitor "after Python tests (macOS)"
 
       - name: Upload wheel artifact
         uses: ./.github/actions/upload-artifact-wheel
@@ -318,7 +339,10 @@ jobs:
 
       - name: Run tests
         run: |
+          ./scripts/ci/disk-space-monitor.sh monitor "before Python tests (Windows)"
           uv run --no-sync pytest --ignore=tests/performance_tests
+          ./scripts/ci/disk-space-monitor.sh cleanup
+          ./scripts/ci/disk-space-monitor.sh monitor "after Python tests (Windows)"
 
       - name: Upload wheel artifact
         uses: ./.github/actions/upload-artifact-wheel

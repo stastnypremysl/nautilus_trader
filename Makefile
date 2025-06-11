@@ -40,6 +40,7 @@ build-dry-run:
 clean:
 	find . -type d -name "__pycache__" -not -path "./.venv*" -print0 | xargs -0 rm -rf
 	find . -type f -a \( -name "*.so" -o -name "*.dll" -o -name "*.dylib" \) -not -path "./.venv*" -print0 | xargs -0 rm -f
+	find . -type f -a \( -name "*.pyc" -o -name "*.pyo" \) -not -path "./.venv*" -print0 | xargs -0 rm -f
 	rm -rf \
 		.benchmarks/ \
 		.mypy_cache/ \
@@ -48,6 +49,31 @@ clean:
 		build/ \
 		dist/ \
 		target/
+
+.PHONY: clean-build-artifacts
+clean-build-artifacts:
+	@echo "Cleaning build artifacts to free disk space..."
+	# Clean Rust build artifacts (keep final libraries)
+	find target -name "*.rlib" -delete 2>/dev/null || true
+	find target -name "*.rmeta" -delete 2>/dev/null || true
+	rm -rf target/*/build target/*/deps 2>/dev/null || true
+	# Clean Python build artifacts
+	rm -rf build/ 2>/dev/null || true
+	find . -type d -name "__pycache__" -not -path "./.venv*" -exec rm -rf {} + 2>/dev/null || true
+	find . -type f -name "*.pyc" -not -path "./.venv*" -delete 2>/dev/null || true
+	# Clean test artifacts
+	rm -rf .pytest_cache/ .coverage .mypy_cache/ .ruff_cache/ 2>/dev/null || true
+
+.PHONY: clean-caches
+clean-caches:
+	@echo "Cleaning caches to free disk space..."
+	# Stop and restart sccache to clear cache
+	-sccache --stop-server 2>/dev/null
+	-sccache --start-server 2>/dev/null
+	# Prune uv cache
+	-uv cache prune --keep-versions 2 2>/dev/null
+	# Clean cargo cache
+	-cargo clean 2>/dev/null
 
 .PHONY: distclean
 distclean: clean

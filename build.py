@@ -164,6 +164,46 @@ def _build_rust_libs() -> None:
         ) from e
 
 
+def _cleanup_build_artifacts() -> None:
+    """Clean up intermediate build artifacts to free disk space."""
+    print("Cleaning up build artifacts to free disk space...")
+    
+    import shutil
+    from pathlib import Path
+    
+    # Clean up Rust build artifacts (keep final libraries)
+    target_dir = Path("target")
+    if target_dir.exists():
+        for pattern in ["**/*.rlib", "**/*.rmeta"]:
+            for file in target_dir.glob(pattern):
+                try:
+                    file.unlink()
+                except OSError:
+                    pass
+        
+        # Clean intermediate build directories
+        for build_dir in target_dir.glob("*/build"):
+            if build_dir.is_dir():
+                shutil.rmtree(build_dir, ignore_errors=True)
+        
+        for deps_dir in target_dir.glob("*/deps"):
+            if deps_dir.is_dir():
+                # Keep only .so/.dll/.dylib files, remove .rlib/.rmeta
+                for item in deps_dir.iterdir():
+                    if item.suffix in {".rlib", ".rmeta"}:
+                        try:
+                            item.unlink()
+                        except OSError:
+                            pass
+    
+    # Clean Python build artifacts
+    build_dir = Path("build")
+    if build_dir.exists() and BUILD_DIR != "build":
+        shutil.rmtree(build_dir, ignore_errors=True)
+    
+    print("Build artifact cleanup completed")
+
+
 ################################################################################
 #  CYTHON BUILD
 ################################################################################
@@ -415,6 +455,10 @@ def build() -> None:
     Construct the extensions and distribution.
     """
     _build_rust_libs()
+    
+    # Clean up intermediate Rust build artifacts to free space
+    _cleanup_build_artifacts()
+    
     _copy_rust_dylibs_to_project()
 
     if not PYO3_ONLY:
@@ -430,6 +474,9 @@ def build() -> None:
         cmd.ensure_finalized()
         cmd.run()
 
+        # Clean up intermediate Python build artifacts
+        _cleanup_build_artifacts()
+
         if COPY_TO_SOURCE:
             # Copy the build back into the source tree for development and wheel packaging
             _copy_build_dir_to_project(cmd)
@@ -437,6 +484,9 @@ def build() -> None:
     if BUILD_MODE == "release" and (IS_LINUX or IS_MACOS):
         # Only strip symbols for release builds
         _strip_unneeded_symbols()
+    
+    # Final cleanup of any remaining intermediate artifacts
+    _cleanup_build_artifacts()
 
 
 def print_env_var_if_exists(key: str) -> None:

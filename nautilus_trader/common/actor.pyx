@@ -3028,6 +3028,9 @@ cdef class Actor(Component):
 
         params = params if params else {}
         params["update_catalog_mode"] = update_catalog_mode
+        # Ensure start and end are available for batch processing
+        params["start"] = start
+        params["end"] = end
 
         cdef UUID4 request_id = UUID4()
         cdef RequestBars request = RequestBars(

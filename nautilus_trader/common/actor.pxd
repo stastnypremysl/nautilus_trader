@@ -326,7 +326,7 @@ cdef class Actor(Component):
     cpdef void _handle_indicators_for_trade(self, list indicators, TradeTick tick)
     cpdef void _handle_indicators_for_bar(self, list indicators, Bar bar)
 
-# -- DATETIME VALIDATION -------------------------------------------------------------------------
+# -- VALIDATIONS ------------------------------------------------------------------------------
 
     cdef tuple _validate_datetime_range(self, datetime start, datetime end)
 

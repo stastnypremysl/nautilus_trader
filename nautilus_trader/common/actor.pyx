@@ -3151,6 +3151,9 @@ cdef class Actor(Component):
         params["include_external_data"] = include_external_data
         params["update_subscriptions"] = update_subscriptions
         params["update_catalog_mode"] = update_catalog_mode
+        # Ensure start and end are available for batch processing
+        params["start"] = start
+        params["end"] = end
 
         if first_bar_type.is_composite():
             params["bars_market_data_type"] = "bars"

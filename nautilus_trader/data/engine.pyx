@@ -2142,6 +2142,9 @@ cdef class DataEngine(Component):
         if params["bars_market_data_type"] == "bars":
             bars_result[params["bar_type"]] = ticks
 
+        # Extract start time from original request parameters
+        cdef uint64_t start_time_ns = dt_to_unix_nanos(params["start"]) if params["start"] else 0
+
         for bar_type in params["bar_types"]:
             if params["update_subscriptions"] and bar_type.standard() in self._bar_aggregators:
                 aggregator = self._bar_aggregators[bar_type.standard()]
@@ -2164,12 +2167,12 @@ cdef class DataEngine(Component):
             handler = aggregated_bars.append
 
             if params["bars_market_data_type"] == "quote_ticks" and not bar_type.is_composite():
-                aggregator.start_batch_update(handler, ticks[0].ts_event)
+                aggregator.start_batch_update(handler, start_time_ns)
 
                 for tick in ticks:
                     aggregator.handle_quote_tick(tick)
             elif params["bars_market_data_type"] == "trade_ticks" and not bar_type.is_composite():
-                aggregator.start_batch_update(handler, ticks[0].ts_event)
+                aggregator.start_batch_update(handler, start_time_ns)
 
                 for tick in ticks:
                     aggregator.handle_trade_tick(tick)
@@ -2177,7 +2180,7 @@ cdef class DataEngine(Component):
                 input_bars = bars_result[bar_type.composite()]
 
                 if len(input_bars) > 0:
-                    aggregator.start_batch_update(handler, input_bars[0].ts_init)
+                    aggregator.start_batch_update(handler, start_time_ns)
 
                     for bar in input_bars:
                         aggregator.handle_bar(bar)

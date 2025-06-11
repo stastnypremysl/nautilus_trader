@@ -331,7 +331,7 @@ class InteractiveBrokersDataClient(LiveMarketDataClient):
             self._log.warning(f"No quote tick data received for {request.instrument_id}")
             return
 
-        self._handle_quote_ticks(request.instrument_id, ticks, request.id, request.params)
+        self._handle_quote_ticks(request.instrument_id, ticks, request.id, request.params, request.start, request.end)
 
     async def _request_trade_ticks(self, request: RequestTradeTicks) -> None:
         if not (instrument := self._cache.instrument(request.instrument_id)):
@@ -359,7 +359,7 @@ class InteractiveBrokersDataClient(LiveMarketDataClient):
             self._log.warning(f"No trades received for {request.instrument_id}")
             return
 
-        self._handle_trade_ticks(request.instrument_id, ticks, request.id, request.params)
+        self._handle_trade_ticks(request.instrument_id, ticks, request.id, request.params, request.start, request.end)
 
     async def _handle_ticks_request(
         self,
@@ -447,7 +447,7 @@ class InteractiveBrokersDataClient(LiveMarketDataClient):
         if bars:
             bars = list(set(bars))
             bars.sort(key=lambda x: x.ts_init)
-            self._handle_bars(request.bar_type, bars, bars[0], request.id, request.params)
+            self._handle_bars(request.bar_type, bars, bars[0], request.id, request.params, request.start, request.end)
             status_msg = {"id": request.id, "status": "Success"}
         else:
             self._log.warning(f"No bar data received for {request.bar_type}")

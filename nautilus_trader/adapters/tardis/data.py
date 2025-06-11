@@ -457,7 +457,7 @@ class TardisDataClient(LiveMarketDataClient):
             LogColor.MAGENTA,
         )
 
-        self._handle_bars(request.bar_type, bars, None, request.id, request.params)
+        self._handle_bars(request.bar_type, bars, None, request.id, request.params, request.start, request.end)
 
     def _handle_msg(
         self,

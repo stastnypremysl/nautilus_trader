@@ -957,7 +957,7 @@ class DatabentoDataClient(LiveMarketDataClient):
 
         quotes = QuoteTick.from_pyo3_list(pyo3_quotes)
 
-        self._handle_quote_ticks(request.instrument_id, quotes, request.id, request.params)
+        self._handle_quote_ticks(request.instrument_id, quotes, request.id, request.params, request.start, request.end)
 
     async def _request_trade_ticks(self, request: RequestTradeTicks) -> None:
         dataset: Dataset = self._loader.get_dataset_for_venue(request.instrument_id.venue)
@@ -985,7 +985,7 @@ class DatabentoDataClient(LiveMarketDataClient):
 
         trades = TradeTick.from_pyo3_list(pyo3_trades)
 
-        self._handle_trade_ticks(request.instrument_id, trades, request.id, request.params)
+        self._handle_trade_ticks(request.instrument_id, trades, request.id, request.params, request.start, request.end)
 
     async def _request_bars(self, request: RequestBars) -> None:
         dataset: Dataset = self._loader.get_dataset_for_venue(request.bar_type.instrument_id.venue)
@@ -1024,6 +1024,8 @@ class DatabentoDataClient(LiveMarketDataClient):
             partial=None,  # No partials
             correlation_id=request.id,
             params=request.params,
+            start=request.start,
+            end=request.end,
         )
 
     def _handle_msg_pyo3(

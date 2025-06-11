@@ -216,6 +216,8 @@ class BybitDataClient(LiveMarketDataClient):
             correlation_id=id,
             response_id=UUID4(),
             ts_init=self._clock.timestamp_ns(),
+            start=None,
+            end=None,
         )
         self._msgbus.response(data)
 

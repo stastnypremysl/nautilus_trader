@@ -180,6 +180,8 @@ pub struct QuotesResponse {
     pub instrument_id: InstrumentId,
     pub data: Vec<QuoteTick>,
     pub ts_init: UnixNanos,
+    pub start: Option<UnixNanos>,
+    pub end: Option<UnixNanos>,
     pub params: Option<IndexMap<String, String>>,
 }
 
@@ -196,6 +198,8 @@ impl QuotesResponse {
         instrument_id: InstrumentId,
         data: Vec<QuoteTick>,
         ts_init: UnixNanos,
+        start: Option<UnixNanos>,
+        end: Option<UnixNanos>,
         params: Option<IndexMap<String, String>>,
     ) -> Self {
         Self {
@@ -204,6 +208,8 @@ impl QuotesResponse {
             instrument_id,
             data,
             ts_init,
+            start,
+            end,
             params,
         }
     }
@@ -216,6 +222,8 @@ pub struct TradesResponse {
     pub instrument_id: InstrumentId,
     pub data: Vec<TradeTick>,
     pub ts_init: UnixNanos,
+    pub start: Option<UnixNanos>,
+    pub end: Option<UnixNanos>,
     pub params: Option<IndexMap<String, String>>,
 }
 
@@ -232,6 +240,8 @@ impl TradesResponse {
         instrument_id: InstrumentId,
         data: Vec<TradeTick>,
         ts_init: UnixNanos,
+        start: Option<UnixNanos>,
+        end: Option<UnixNanos>,
         params: Option<IndexMap<String, String>>,
     ) -> Self {
         Self {
@@ -240,6 +250,8 @@ impl TradesResponse {
             instrument_id,
             data,
             ts_init,
+            start,
+            end,
             params,
         }
     }
@@ -252,6 +264,8 @@ pub struct BarsResponse {
     pub bar_type: BarType,
     pub data: Vec<Bar>,
     pub ts_init: UnixNanos,
+    pub start: Option<UnixNanos>,
+    pub end: Option<UnixNanos>,
     pub params: Option<IndexMap<String, String>>,
 }
 
@@ -268,6 +282,8 @@ impl BarsResponse {
         bar_type: BarType,
         data: Vec<Bar>,
         ts_init: UnixNanos,
+        start: Option<UnixNanos>,
+        end: Option<UnixNanos>,
         params: Option<IndexMap<String, String>>,
     ) -> Self {
         Self {
@@ -276,6 +292,8 @@ impl BarsResponse {
             bar_type,
             data,
             ts_init,
+            start,
+            end,
             params,
         }
     }

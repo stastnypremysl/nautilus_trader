@@ -1703,11 +1703,6 @@ cdef class DataEngine(Component):
 
         params = request.params.copy()
         params["update_catalog_mode"] = None
-        # Preserve request timing for batch processing
-        if request.start is not None:
-            params["start"] = request.start
-        if request.end is not None:
-            params["end"] = request.end
 
         response = DataResponse(
             client_id=request.client_id,
@@ -1717,6 +1712,8 @@ cdef class DataEngine(Component):
             correlation_id=request.id,
             response_id=UUID4(),
             ts_init=self._clock.timestamp_ns(),
+            start=request.start,
+            end=request.end,
             params=params,
         )
 
@@ -1978,19 +1975,19 @@ cdef class DataEngine(Component):
                     self._handle_instrument(response_2.data, update_catalog_mode)
             elif response_2.data_type.type == QuoteTick:
                 if response_2.params.get("bars_market_data_type"):
-                    response_2.data = self._handle_aggregated_bars(response_2.data, response_2.params)
+                    response_2.data = self._handle_aggregated_bars(response_2.data, response_2)
                     response_2.data_type = DataType(Bar)
                 else:
                     self._handle_quote_ticks(response_2.data)
             elif response_2.data_type.type == TradeTick:
                 if response_2.params.get("bars_market_data_type"):
-                    response_2.data = self._handle_aggregated_bars(response_2.data, response_2.params)
+                    response_2.data = self._handle_aggregated_bars(response_2.data, response_2)
                     response_2.data_type = DataType(Bar)
                 else:
                     self._handle_trade_ticks(response_2.data)
             elif response_2.data_type.type == Bar:
                 if response_2.params.get("bars_market_data_type"):
-                    response_2.data = self._handle_aggregated_bars(response_2.data, response_2.params)
+                    response_2.data = self._handle_aggregated_bars(response_2.data, response_2)
                 else:
                     self._handle_bars(response_2.data, response_2.data_type.metadata.get("partial"))
 
@@ -2123,38 +2120,38 @@ cdef class DataEngine(Component):
                     # - with the partial bar being for a now removed aggregator.
                     self._log.error("No aggregator for partial bar update")
 
-    cpdef dict _handle_aggregated_bars(self, list ticks, dict params):
+    cpdef dict _handle_aggregated_bars(self, list ticks, DataResponse response):
         # Closure is not allowed in cpdef functions so we call a cdef function
-        return self._handle_aggregated_bars_aux(ticks, params)
+        return self._handle_aggregated_bars_aux(ticks, response)
 
-    cdef dict _handle_aggregated_bars_aux(self, list ticks, dict params):
+    cdef dict _handle_aggregated_bars_aux(self, list ticks, DataResponse response):
         cdef dict result = {}
 
         if len(ticks) == 0:
             self._log.warning("_handle_aggregated_bars: No data to aggregate")
             return result
 
-        # Extract start time from original request parameters
-        cdef uint64_t start_time_ns = dt_to_unix_nanos(params["start"]) if params.get("start") else 0
+        # Extract start time from original request timing
+        cdef uint64_t start_time_ns = dt_to_unix_nanos(response.start) if response.start is not None else 0
 
         cdef dict bars_result = {}
 
-        if params["include_external_data"]:
-            if params["bars_market_data_type"] == "quote_ticks":
+        if response.params["include_external_data"]:
+            if response.params["bars_market_data_type"] == "quote_ticks":
                 self._cache.add_quote_ticks(ticks)
                 result["quote_ticks"] = ticks
-            elif params["bars_market_data_type"] == "trade_ticks":
+            elif response.params["bars_market_data_type"] == "trade_ticks":
                 self._cache.add_trade_ticks(ticks)
                 result["trade_ticks"] = ticks
 
-        if params["bars_market_data_type"] == "bars":
-            bars_result[params["bar_type"]] = ticks
+        if response.params["bars_market_data_type"] == "bars":
+            bars_result[response.params["bar_type"]] = ticks
 
-        for bar_type in params["bar_types"]:
-            if params["update_subscriptions"] and bar_type.standard() in self._bar_aggregators:
+        for bar_type in response.params["bar_types"]:
+            if response.params["update_subscriptions"] and bar_type.standard() in self._bar_aggregators:
                 aggregator = self._bar_aggregators[bar_type.standard()]
             else:
-                instrument = self._cache.instrument(params["bar_type"].instrument_id)
+                instrument = self._cache.instrument(response.params["bar_type"].instrument_id)
 
                 if instrument is None:
                     self._log.error(
@@ -2165,18 +2162,18 @@ cdef class DataEngine(Component):
 
                 aggregator = self._create_bar_aggregator(instrument, bar_type)
 
-                if params["update_subscriptions"]:
+                if response.params["update_subscriptions"]:
                     self._bar_aggregators[bar_type.standard()] = aggregator
 
             aggregated_bars = []
             handler = aggregated_bars.append
 
-            if params["bars_market_data_type"] == "quote_ticks" and not bar_type.is_composite():
+            if response.params["bars_market_data_type"] == "quote_ticks" and not bar_type.is_composite():
                 aggregator.start_batch_update(handler, start_time_ns)
 
                 for tick in ticks:
                     aggregator.handle_quote_tick(tick)
-            elif params["bars_market_data_type"] == "trade_ticks" and not bar_type.is_composite():
+            elif response.params["bars_market_data_type"] == "trade_ticks" and not bar_type.is_composite():
                 aggregator.start_batch_update(handler, start_time_ns)
 
                 for tick in ticks:
@@ -2193,8 +2190,8 @@ cdef class DataEngine(Component):
             aggregator.stop_batch_update()
             bars_result[bar_type.standard()] = aggregated_bars
 
-        if not params["include_external_data"] and params["bars_market_data_type"] == "bars":
-            del bars_result[params["bar_type"]]
+        if not response.params["include_external_data"] and response.params["bars_market_data_type"] == "bars":
+            del bars_result[response.params["bar_type"]]
 
         # We need a second final dict as a we can't delete keys in a loop
         result["bars"] = {}

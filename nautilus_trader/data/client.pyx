@@ -216,6 +216,8 @@ cdef class DataClient(Component):
             correlation_id=correlation_id,
             response_id=UUID4(),
             ts_init=self._clock.timestamp_ns(),
+            start=None,
+            end=None,
             params=params,
         )
 
@@ -1078,6 +1080,8 @@ cdef class MarketDataClient(DataClient):
             correlation_id=correlation_id,
             response_id=UUID4(),
             ts_init=self._clock.timestamp_ns(),
+            start=None,
+            end=None,
             params=params,
         )
 
@@ -1092,6 +1096,8 @@ cdef class MarketDataClient(DataClient):
             correlation_id=correlation_id,
             response_id=UUID4(),
             ts_init=self._clock.timestamp_ns(),
+            start=None,
+            end=None,
             params=params,
         )
 
@@ -1106,6 +1112,8 @@ cdef class MarketDataClient(DataClient):
             correlation_id=correlation_id,
             response_id=UUID4(),
             ts_init=self._clock.timestamp_ns(),
+            start=None,
+            end=None,
             params=params,
         )
 
@@ -1120,6 +1128,8 @@ cdef class MarketDataClient(DataClient):
             correlation_id=correlation_id,
             response_id=UUID4(),
             ts_init=self._clock.timestamp_ns(),
+            start=None,
+            end=None,
             params=params,
         )
 
@@ -1134,6 +1144,8 @@ cdef class MarketDataClient(DataClient):
             correlation_id=correlation_id,
             response_id=UUID4(),
             ts_init=self._clock.timestamp_ns(),
+            start=None,
+            end=None,
             params=params,
         )
 
@@ -1148,6 +1160,8 @@ cdef class MarketDataClient(DataClient):
             correlation_id=correlation_id,
             response_id=UUID4(),
             ts_init=self._clock.timestamp_ns(),
+            start=None,
+            end=None,
             params=params,
         )
 

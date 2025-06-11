@@ -2408,19 +2408,16 @@ cdef class Actor(Component):
         self,
         datetime start,
         datetime end,
-        bint require_start = False,
     ):
         """
         Validate datetime range parameters.
 
         Parameters
         ----------
-        start : datetime, optional
+        start : datetime
             The start datetime (UTC) of request time range.
         end : datetime, optional
             The end datetime (UTC) of request time range.
-        require_start : bool, default False
-            If True, requires start to be not None.
 
         Returns
         -------
@@ -2433,23 +2430,13 @@ cdef class Actor(Component):
             If datetime validation fails.
 
         """
-        if require_start:
-            Condition.not_none(start, "start")
-
+        Condition.not_none(start, "start")
         cdef datetime now = self.clock.utc_now()
-        
-        if require_start and end is None:
+        if end is None:
             end = now
-
-        if start is not None:
-            if require_start:
-                Condition.is_true(start < now, "start was >= now")
-            else:
-                Condition.is_true(start <= now, "start was > now")
-        if end is not None:
-            Condition.is_true(end <= now, "end was > now")
-        if start is not None and end is not None:
-            Condition.is_true(start < end, "start was >= end")
+        Condition.is_true(start < now, "start was >= now")            
+        Condition.is_true(end <= now, "end was > now")
+        Condition.is_true(start < end, "start was >= end")
 
         return (start, end)
 

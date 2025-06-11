@@ -2264,6 +2264,10 @@ cdef class DataResponse(Response):
         The data type of the response.
     data : object
         The data of the response.
+    start : datetime or ``None``
+        The start datetime (UTC) of response time range (inclusive).
+    stop : datetime or ``None``
+        The stop datetime (UTC) of response time range.
     correlation_id : UUID4
         The correlation ID.
     response_id : UUID4
@@ -2286,6 +2290,8 @@ cdef class DataResponse(Response):
             Venue venue: Venue | None,
             DataType data_type,
             data not None,
+            datetime start: datetime | None,
+            datetime stop: datetime | None,
             UUID4 correlation_id not None,
             UUID4 response_id not None,
             uint64_t ts_init,
@@ -2302,6 +2308,8 @@ cdef class DataResponse(Response):
         self.venue = venue
         self.data_type = data_type
         self.data = data
+        self.start = start
+        self.stop = stop
         self.params = params or {}
 
     def __str__(self) -> str:
@@ -2309,7 +2317,9 @@ cdef class DataResponse(Response):
             f"{type(self).__name__}("
             f"client_id={self.client_id}, "
             f"venue={self.venue}, "
-            f"data_type={self.data_type})"
+            f"data_type={self.data_type}, "
+            f"start={self.start}, "
+            f"stop={self.stop})"
         )
 
     def __repr__(self) -> str:
@@ -2318,6 +2328,8 @@ cdef class DataResponse(Response):
             f"client_id={self.client_id}, "
             f"venue={self.venue}, "
             f"data_type={self.data_type}, "
+            f"start={self.start}, "
+            f"stop={self.stop}, "
             f"correlation_id={self.correlation_id}, "
             f"id={self.id}{form_params_str(self.params)})"
         )

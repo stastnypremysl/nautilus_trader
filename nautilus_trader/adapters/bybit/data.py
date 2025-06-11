@@ -213,6 +213,8 @@ class BybitDataClient(LiveMarketDataClient):
             venue=BYBIT_VENUE,
             data_type=DataType(CustomData),
             data=tickers,
+            start=None,
+            stop=None,
             correlation_id=id,
             response_id=UUID4(),
             ts_init=self._clock.timestamp_ns(),

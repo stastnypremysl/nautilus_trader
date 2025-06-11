@@ -87,6 +87,8 @@ class TestDataMessage:
                 venue=None,
                 data_type=DataType(QuoteTick),
                 data=[],
+                start=None,
+                stop=None,
                 correlation_id=UUID4(),
                 response_id=UUID4(),
                 ts_init=self.clock.timestamp_ns(),
@@ -224,6 +226,8 @@ class TestDataMessage:
             venue=BINANCE,
             data_type=DataType(QuoteTick, metadata={"instrument_id": instrument_id}),
             data=[],
+            start=None,
+            stop=None,
             correlation_id=correlation_id,
             response_id=response_id,
             ts_init=self.clock.timestamp_ns(),
@@ -232,13 +236,15 @@ class TestDataMessage:
         # Assert
         assert (
             str(response)
-            == "DataResponse(client_id=None, venue=BINANCE, data_type=QuoteTick{'instrument_id': InstrumentId('AUD/USD.IDEALPRO')})"
+            == "DataResponse(client_id=None, venue=BINANCE, data_type=QuoteTick{'instrument_id': InstrumentId('AUD/USD.IDEALPRO')}, start=None, stop=None)"
         )
         assert repr(response) == (
             f"DataResponse("
             f"client_id=None, "
             f"venue=BINANCE, "
             f"data_type=QuoteTick{{'instrument_id': InstrumentId('AUD/USD.IDEALPRO')}}, "
+            f"start=None, "
+            f"stop=None, "
             f"correlation_id={correlation_id}, "
             f"id={response_id})"
         )
@@ -254,6 +260,8 @@ class TestDataMessage:
             venue=Venue("IDEALPRO"),
             data_type=DataType(QuoteTick, metadata={"instrument_id": instrument_id}),
             data=[],
+            start=None,
+            stop=None,
             correlation_id=correlation_id,
             response_id=response_id,
             ts_init=self.clock.timestamp_ns(),
@@ -262,13 +270,15 @@ class TestDataMessage:
         # Assert
         assert (
             str(response)
-            == "DataResponse(client_id=IB, venue=IDEALPRO, data_type=QuoteTick{'instrument_id': InstrumentId('AUD/USD.IDEALPRO')})"
+            == "DataResponse(client_id=IB, venue=IDEALPRO, data_type=QuoteTick{'instrument_id': InstrumentId('AUD/USD.IDEALPRO')}, start=None, stop=None)"
         )
         assert repr(response) == (
             f"DataResponse("
             f"client_id=IB, "
             f"venue=IDEALPRO, "
             f"data_type=QuoteTick{{'instrument_id': InstrumentId('AUD/USD.IDEALPRO')}}, "
+            f"start=None, "
+            f"stop=None, "
             f"correlation_id={correlation_id}, "
             f"id={response_id})"
         )

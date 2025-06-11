@@ -529,6 +529,8 @@ class TestDataEngine:
             venue=BINANCE,
             data_type=DataType(QuoteTick),
             data=[],
+            start=None,
+            stop=None,
             correlation_id=UUID4(),
             response_id=UUID4(),
             ts_init=self.clock.timestamp_ns(),

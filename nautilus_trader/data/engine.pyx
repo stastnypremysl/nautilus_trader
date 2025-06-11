@@ -1709,6 +1709,8 @@ cdef class DataEngine(Component):
             venue=request.venue,
             data_type=request.data_type,
             data=data,
+            start=request.start,
+            stop=request.end,
             correlation_id=request.id,
             response_id=UUID4(),
             ts_init=self._clock.timestamp_ns(),

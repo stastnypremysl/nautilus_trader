@@ -1703,6 +1703,11 @@ cdef class DataEngine(Component):
 
         params = request.params.copy()
         params["update_catalog_mode"] = None
+        # Preserve request timing for batch processing
+        if request.start is not None:
+            params["start"] = request.start
+        if request.end is not None:
+            params["end"] = request.end
 
         response = DataResponse(
             client_id=request.client_id,
@@ -2129,6 +2134,9 @@ cdef class DataEngine(Component):
             self._log.warning("_handle_aggregated_bars: No data to aggregate")
             return result
 
+        # Extract start time from original request parameters
+        cdef uint64_t start_time_ns = dt_to_unix_nanos(params["start"]) if params.get("start") else 0
+
         cdef dict bars_result = {}
 
         if params["include_external_data"]:
@@ -2141,9 +2149,6 @@ cdef class DataEngine(Component):
 
         if params["bars_market_data_type"] == "bars":
             bars_result[params["bar_type"]] = ticks
-
-        # Extract start time from original request parameters
-        cdef uint64_t start_time_ns = dt_to_unix_nanos(params["start"]) if params.get("start") else 0
 
         for bar_type in params["bar_types"]:
             if params["update_subscriptions"] and bar_type.standard() in self._bar_aggregators:

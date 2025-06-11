@@ -2402,7 +2402,7 @@ cdef class Actor(Component):
             handler=self.handle_signal,
         )
 
-# -- DATETIME VALIDATION -------------------------------------------------------------------------
+# -- VALIDATIONS -------------------------------------------------------------------------
 
     cdef void _validate_datetime_range(
         self,

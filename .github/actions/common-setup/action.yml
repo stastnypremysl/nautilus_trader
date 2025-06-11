@@ -195,6 +195,12 @@ runs:
         echo "Setting up disk space monitoring utilities..."
         chmod +x ./scripts/ci/disk-space-monitor.sh
         
+        # Verify the script works
+        if ! ./scripts/ci/disk-space-monitor.sh check "setup verification" > /dev/null; then
+          echo "❌ Disk space monitoring script verification failed"
+          exit 1
+        fi
+        
         # Set disk space thresholds based on runner type
         echo "DISK_SPACE_THRESHOLD_GB=3" >> $GITHUB_ENV
         echo "DISK_SPACE_CRITICAL_THRESHOLD_GB=1" >> $GITHUB_ENV

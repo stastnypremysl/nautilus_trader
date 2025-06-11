@@ -99,8 +99,11 @@ function monitor_disk_space() {
     local step="$1"
     log_info "=== Disk Space Monitor: $step ==="
     
+    # Temporarily disable exit on error to handle check_disk_space return codes
+    set +e
     check_disk_space
     local exit_code=$?
+    set -e
     
     if [[ $exit_code -eq 2 ]]; then
         log_error "Critical disk space! Attempting emergency cleanup..."
@@ -108,8 +111,10 @@ function monitor_disk_space() {
         cleanup_caches
         
         # Check again after cleanup
+        set +e
         check_disk_space
         local new_exit_code=$?
+        set -e
         if [[ $new_exit_code -eq 2 ]]; then
             log_error "Emergency cleanup failed to free enough space"
             exit 1
@@ -117,6 +122,12 @@ function monitor_disk_space() {
     elif [[ $exit_code -eq 1 ]]; then
         log_warning "Low disk space detected, running preventive cleanup..."
         cleanup_build_artifacts
+        
+        # Check again after cleanup
+        set +e
+        check_disk_space
+        set -e
+        # Don't fail on warning after cleanup - just log the result
     fi
     
     log_info "=== End Disk Space Monitor ==="

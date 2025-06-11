@@ -1975,19 +1975,19 @@ cdef class DataEngine(Component):
                     self._handle_instrument(response_2.data, update_catalog_mode)
             elif response_2.data_type.type == QuoteTick:
                 if response_2.params.get("bars_market_data_type"):
-                    response_2.data = self._handle_aggregated_bars(response_2.data, response_2)
+                    response_2.data = self._handle_aggregated_bars(response_2)
                     response_2.data_type = DataType(Bar)
                 else:
                     self._handle_quote_ticks(response_2.data)
             elif response_2.data_type.type == TradeTick:
                 if response_2.params.get("bars_market_data_type"):
-                    response_2.data = self._handle_aggregated_bars(response_2.data, response_2)
+                    response_2.data = self._handle_aggregated_bars(response_2)
                     response_2.data_type = DataType(Bar)
                 else:
                     self._handle_trade_ticks(response_2.data)
             elif response_2.data_type.type == Bar:
                 if response_2.params.get("bars_market_data_type"):
-                    response_2.data = self._handle_aggregated_bars(response_2.data, response_2)
+                    response_2.data = self._handle_aggregated_bars(response_2)
                 else:
                     self._handle_bars(response_2.data, response_2.data_type.metadata.get("partial"))
 
@@ -2120,12 +2120,13 @@ cdef class DataEngine(Component):
                     # - with the partial bar being for a now removed aggregator.
                     self._log.error("No aggregator for partial bar update")
 
-    cpdef dict _handle_aggregated_bars(self, list ticks, DataResponse response):
+    cpdef dict _handle_aggregated_bars(self, DataResponse response):
         # Closure is not allowed in cpdef functions so we call a cdef function
-        return self._handle_aggregated_bars_aux(ticks, response)
+        return self._handle_aggregated_bars_aux(response)
 
-    cdef dict _handle_aggregated_bars_aux(self, list ticks, DataResponse response):
+    cdef dict _handle_aggregated_bars_aux(self, DataResponse response):
         cdef dict result = {}
+        cdef list ticks = response.data
 
         if len(ticks) == 0:
             self._log.warning("_handle_aggregated_bars: No data to aggregate")

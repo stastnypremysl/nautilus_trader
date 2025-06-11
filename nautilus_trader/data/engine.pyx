@@ -2131,8 +2131,9 @@ cdef class DataEngine(Component):
             self._log.warning("_handle_aggregated_bars: No data to aggregate")
             return result
 
-        # Extract start time from original request timing
+        # Extract start and end time from original request timing
         cdef uint64_t start_time_ns = dt_to_unix_nanos(response.start) if response.start is not None else 0
+        cdef uint64_t end_time_ns = dt_to_unix_nanos(response.end) if response.end else 0
 
         cdef dict bars_result = {}
 
@@ -2187,7 +2188,7 @@ cdef class DataEngine(Component):
                     for bar in input_bars:
                         aggregator.handle_bar(bar)
 
-            aggregator.stop_batch_update()
+            aggregator.stop_batch_update(end_time_ns)
             bars_result[bar_type.standard()] = aggregated_bars
 
         if not response.params["include_external_data"] and response.params["bars_market_data_type"] == "bars":

@@ -25,7 +25,7 @@ use nautilus_common::{
         },
     },
 };
-use nautilus_core::UUID4;
+use nautilus_core::{UUID4, UnixNanos};
 use nautilus_data::client::DataClient;
 use nautilus_model::{
     data::{

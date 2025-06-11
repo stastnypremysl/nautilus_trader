@@ -2187,6 +2187,17 @@ class TestTimeBarAggregator:
         tick2: QuoteTick | TradeTick | None,
         time_shift: pd.Timedelta,
     ):
+        """
+        Test that TimeBarAggregator correctly schedules and updates timers for various bar specifications.
+        
+        Validates that the aggregator accurately calculates next close timestamps (timer boundaries) 
+        across different time intervals (milliseconds to months), step sizes, price types, and origin offsets.
+        Tests proper timer advancement through multiple bar periods and ensures bars are emitted at 
+        exact expected boundaries regardless of tick timing or aggregator start time.
+        
+        This test is critical for ensuring live/batch consistency - the timer scheduling must be 
+        deterministic and identical whether processing historical data or live market data streams.
+        """
         # Arrange
         start_time_ns = (pd.Timestamp(1990, 1, 1) + time_shift).value
 

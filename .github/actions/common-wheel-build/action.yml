@@ -13,10 +13,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Monitor disk space before build
-      shell: bash
-      run: |
-        ./scripts/ci/disk-space-monitor.sh monitor "before wheel build"
     - name: Debug github_ref
       shell: bash
       run: echo "Received github_ref:" ${{ inputs.github_ref }}
@@ -36,27 +32,15 @@ runs:
       if: runner.os == 'Linux' && runner.arch != 'ARM64' && runner.arch != 'aarch64'
       shell: bash
       run: |
-        # Monitor disk space before build
-        ./scripts/ci/disk-space-monitor.sh monitor "before Linux x86_64 build"
-        
         # Build wheel
         uv build --wheel
         ls -lh dist/
-        
-        # Clean up build artifacts to free space
-        ./scripts/ci/disk-space-monitor.sh cleanup
-        
-        # Monitor disk space after build
-        ./scripts/ci/disk-space-monitor.sh monitor "after Linux x86_64 build"
 
     - name: Build Python wheel (Linux ARM64)
       if: runner.os == 'Linux' && (runner.arch == 'ARM64' || runner.arch == 'aarch64')
       shell: bash
       run: |
         echo "Building for Linux ARM64"
-        
-        # Monitor disk space before build
-        ./scripts/ci/disk-space-monitor.sh monitor "before Linux ARM64 build"
         
         PYTHON_LIB_DIR=$(python3 -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))')
         PYTHON_VERSION=$(python3 -c 'import platform; print(".".join(platform.python_version_tuple()[:2]))')
@@ -76,36 +60,18 @@ runs:
 
         uv build --wheel
         ls -lh dist/
-        
-        # Clean up build artifacts to free space
-        ./scripts/ci/disk-space-monitor.sh cleanup
-        
-        # Monitor disk space after build
-        ./scripts/ci/disk-space-monitor.sh monitor "after Linux ARM64 build"
 
     - name: Build Python wheel (Windows)
       if: runner.os == 'Windows'
       shell: bash
       run: |
-        # Monitor disk space before build
-        ./scripts/ci/disk-space-monitor.sh monitor "before Windows build"
-        
         uv build --wheel
         ls -lh dist/
-        
-        # Clean up build artifacts to free space
-        ./scripts/ci/disk-space-monitor.sh cleanup
-        
-        # Monitor disk space after build
-        ./scripts/ci/disk-space-monitor.sh monitor "after Windows build"
 
     - name: Build Python wheel (macOS)
       if: runner.os == 'macOS'
       shell: bash
       run: |
-        # Monitor disk space before build
-        ./scripts/ci/disk-space-monitor.sh monitor "before macOS build"
-        
         export PATH="$pythonLocation/bin:$PATH"
         export PYO3_PYTHON=$(which python${{ inputs.python-version }} || echo "$pythonLocation/bin/python${{ inputs.python-version }}")
         export RUSTFLAGS="-C link-arg=-undefined -C link-arg=dynamic_lookup"
@@ -121,24 +87,9 @@ runs:
 
         uv build --wheel
         ls -lh dist/
-        
-        # Clean up build artifacts to free space
-        ./scripts/ci/disk-space-monitor.sh cleanup
-        
-        # Monitor disk space after build
-        ./scripts/ci/disk-space-monitor.sh monitor "after macOS build"
 
     - name: Install Python wheel
       shell: bash
       run: |
         uv sync --all-groups --all-extras --no-install-package nautilus_trader
         uv pip install dist/*.whl
-
-    - name: Final cleanup and disk space check
-      shell: bash
-      run: |
-        # Final cleanup of any remaining build artifacts
-        ./scripts/ci/disk-space-monitor.sh cleanup
-        
-        # Final disk space check
-        ./scripts/ci/disk-space-monitor.sh monitor "after wheel build completion"

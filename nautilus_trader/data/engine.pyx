@@ -2143,7 +2143,7 @@ cdef class DataEngine(Component):
             bars_result[params["bar_type"]] = ticks
 
         # Extract start time from original request parameters
-        cdef uint64_t start_time_ns = dt_to_unix_nanos(params["start"]) if params["start"] else 0
+        cdef uint64_t start_time_ns = dt_to_unix_nanos(params["start"]) if params.get("start") else 0
 
         for bar_type in params["bar_types"]:
             if params["update_subscriptions"] and bar_type.standard() in self._bar_aggregators:

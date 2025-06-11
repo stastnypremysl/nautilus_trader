@@ -35,15 +35,6 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-
-      - name: Install JavaScript dependencies
-        run: npm ci
-
       - name: Checkout repository
         # https://github.com/actions/checkout
         uses: actions/checkout@v4

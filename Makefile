@@ -61,8 +61,8 @@ clean-build-artifacts:
 .PHONY: clean-caches
 clean-caches:
 	rm -rf .pytest_cache .mypy_cache .ruff_cache 2>/dev/null || true
-	uv cache prune
-	cargo clean
+	-uv cache prune
+	-cargo clean
 
 .PHONY: distclean
 distclean: clean

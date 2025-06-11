@@ -67,9 +67,6 @@ clean-build-artifacts:
 .PHONY: clean-caches
 clean-caches:
 	@echo "Cleaning caches to free disk space..."
-	# Stop and restart sccache to clear cache
-	-sccache --stop-server 2>/dev/null
-	-sccache --start-server 2>/dev/null
 	# Prune uv cache
 	-uv cache prune --keep-versions 2 2>/dev/null
 	# Clean cargo cache

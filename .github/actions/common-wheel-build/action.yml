@@ -32,7 +32,6 @@ runs:
       if: runner.os == 'Linux' && runner.arch != 'ARM64' && runner.arch != 'aarch64'
       shell: bash
       run: |
-        # Build wheel
         uv build --wheel
         ls -lh dist/
 

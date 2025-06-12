@@ -17,6 +17,8 @@ from nautilus_trader.common.config import NautilusConfig
 
 from cpython.datetime cimport datetime
 
+from nautilus_trader.core.datetime cimport unix_nanos_to_dt
+
 from nautilus_trader.cache.cache cimport Cache
 from nautilus_trader.common.component cimport Clock
 from nautilus_trader.common.component cimport Component
@@ -218,8 +220,8 @@ cdef class DataClient(Component):
             correlation_id=correlation_id,
             response_id=UUID4(),
             ts_init=self._clock.timestamp_ns(),
-            start=None,
-            end=None,
+            start=unix_nanos_to_dt(self._clock.timestamp_ns()),
+            end=unix_nanos_to_dt(self._clock.timestamp_ns()),
             params=params,
         )
 
@@ -1162,8 +1164,8 @@ cdef class MarketDataClient(DataClient):
             correlation_id=correlation_id,
             response_id=UUID4(),
             ts_init=self._clock.timestamp_ns(),
-            start=None,
-            end=None,
+            start=unix_nanos_to_dt(self._clock.timestamp_ns()),
+            end=unix_nanos_to_dt(self._clock.timestamp_ns()),
             params=params,
         )
 

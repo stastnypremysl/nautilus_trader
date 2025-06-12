@@ -134,16 +134,16 @@ pub trait LiveDataClient: DataClient {
         instrument_id: InstrumentId,
         quotes: Vec<QuoteTick>,
         correlation_id: UUID4,
-        start: Option<UnixNanos>,
-        end: Option<UnixNanos>,
+        start: UnixNanos,
+        end: UnixNanos,
     ) {
         let response = DataResponse::Quotes(QuotesResponse::new(
             correlation_id,
             self.client_id(),
             instrument_id,
             quotes,
-            start.unwrap_or(UnixNanos::default()),
-            end.unwrap_or(UnixNanos::default()),
+            start,
+            end,
             self.get_clock().timestamp_ns(),
             None,
         ));
@@ -156,8 +156,8 @@ pub trait LiveDataClient: DataClient {
         instrument_id: InstrumentId,
         trades: Vec<TradeTick>,
         correlation_id: UUID4,
-        start: Option<UnixNanos>,
-        end: Option<UnixNanos>,
+        start: UnixNanos,
+        end: UnixNanos,
     ) {
         let response = DataResponse::Trades(TradesResponse::new(
             correlation_id,
@@ -165,8 +165,8 @@ pub trait LiveDataClient: DataClient {
             instrument_id,
             trades,
             self.get_clock().timestamp_ns(),
-            start.unwrap_or(UnixNanos::default()),
-            end.unwrap_or(UnixNanos::default()),
+            start,
+            end,
             None,
         ));
 
@@ -178,8 +178,8 @@ pub trait LiveDataClient: DataClient {
         bar_type: BarType,
         bars: Vec<Bar>,
         correlation_id: UUID4,
-        start: Option<UnixNanos>,
-        end: Option<UnixNanos>,
+        start: UnixNanos,
+        end: UnixNanos,
     ) {
         let response = DataResponse::Bars(BarsResponse::new(
             correlation_id,
@@ -187,8 +187,8 @@ pub trait LiveDataClient: DataClient {
             bar_type,
             bars,
             self.get_clock().timestamp_ns(),
-            start.unwrap_or(UnixNanos::default()),
-            end.unwrap_or(UnixNanos::default()),
+            start,
+            end,
             None,
         ));
 

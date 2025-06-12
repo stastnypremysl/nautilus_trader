@@ -45,6 +45,7 @@ from nautilus_trader.adapters.bybit.websocket.client import BybitWebSocketClient
 from nautilus_trader.common.enums import LogColor
 from nautilus_trader.core.datetime import millis_to_nanos
 from nautilus_trader.core.datetime import secs_to_millis
+from nautilus_trader.core.datetime import unix_nanos_to_dt
 from nautilus_trader.core.nautilus_pyo3 import Symbol
 from nautilus_trader.core.uuid import UUID4
 from nautilus_trader.data.messages import DataResponse
@@ -216,8 +217,8 @@ class BybitDataClient(LiveMarketDataClient):
             correlation_id=id,
             response_id=UUID4(),
             ts_init=self._clock.timestamp_ns(),
-            start=None,
-            end=None,
+            start=unix_nanos_to_dt(self._clock.timestamp_ns()),
+            end=unix_nanos_to_dt(self._clock.timestamp_ns()),
         )
         self._msgbus.response(data)
 

@@ -2134,8 +2134,9 @@ cdef class DataEngine(Component):
             return result
 
         # Extract start and end time from original request timing
-        cdef uint64_t start_ns = dt_to_unix_nanos(response.start) if response.start is not None else 0
-        cdef uint64_t end_ns = dt_to_unix_nanos(response.end) if response.end else 0
+        cdef uint64_t start_ns = dt_to_unix_nanos(response.start)
+        cdef uint64_t end_ns = dt_to_unix_nanos(response.end)
+        cdef uint64_t last_ts_init = end_ns  # fallback to end_ns if no data processed
 
         cdef dict bars_result = {}
 
@@ -2170,7 +2171,6 @@ cdef class DataEngine(Component):
 
             aggregated_bars = []
             handler = aggregated_bars.append
-            cdef uint64_t last_ts_init = end_ns  # fallback to end_ns if no data processed
 
             if params["bars_market_data_type"] == "quote_ticks" and not bar_type.is_composite():
                 aggregator.start_batch_update(handler, start_ns)

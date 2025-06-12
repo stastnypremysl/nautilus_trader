@@ -2170,17 +2170,20 @@ cdef class DataEngine(Component):
 
             aggregated_bars = []
             handler = aggregated_bars.append
+            cdef uint64_t last_ts_init = end_ns  # fallback to end_ns if no data processed
 
             if params["bars_market_data_type"] == "quote_ticks" and not bar_type.is_composite():
                 aggregator.start_batch_update(handler, start_ns)
 
                 for tick in ticks:
                     aggregator.handle_quote_tick(tick)
+                    last_ts_init = tick.ts_init
             elif params["bars_market_data_type"] == "trade_ticks" and not bar_type.is_composite():
                 aggregator.start_batch_update(handler, start_ns)
 
                 for tick in ticks:
                     aggregator.handle_trade_tick(tick)
+                    last_ts_init = tick.ts_init
             else:
                 input_bars = bars_result[bar_type.composite()]
 
@@ -2189,8 +2192,9 @@ cdef class DataEngine(Component):
 
                     for bar in input_bars:
                         aggregator.handle_bar(bar)
+                        last_ts_init = bar.ts_init
 
-            aggregator.stop_batch_update(end_ns)
+            aggregator.stop_batch_update(last_ts_init)
             bars_result[bar_type.standard()] = aggregated_bars
 
         if not params["include_external_data"] and params["bars_market_data_type"] == "bars":

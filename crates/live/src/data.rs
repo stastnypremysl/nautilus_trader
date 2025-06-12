@@ -164,9 +164,9 @@ pub trait LiveDataClient: DataClient {
             self.client_id(),
             instrument_id,
             trades,
-            self.get_clock().timestamp_ns(),
             start,
             end,
+            self.get_clock().timestamp_ns(),
             None,
         ));
 
@@ -186,9 +186,9 @@ pub trait LiveDataClient: DataClient {
             self.client_id(),
             bar_type,
             bars,
-            self.get_clock().timestamp_ns(),
             start,
             end,
+            self.get_clock().timestamp_ns(),
             None,
         ));
 

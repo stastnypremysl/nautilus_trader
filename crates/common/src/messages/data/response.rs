@@ -239,9 +239,9 @@ impl TradesResponse {
         client_id: ClientId,
         instrument_id: InstrumentId,
         data: Vec<TradeTick>,
-        ts_init: UnixNanos,
         start: UnixNanos,
         end: UnixNanos,
+        ts_init: UnixNanos,
         params: Option<IndexMap<String, String>>,
     ) -> Self {
         Self {
@@ -249,9 +249,9 @@ impl TradesResponse {
             client_id,
             instrument_id,
             data,
-            ts_init,
             start,
             end,
+            ts_init,
             params,
         }
     }
@@ -281,9 +281,9 @@ impl BarsResponse {
         client_id: ClientId,
         bar_type: BarType,
         data: Vec<Bar>,
-        ts_init: UnixNanos,
         start: UnixNanos,
         end: UnixNanos,
+        ts_init: UnixNanos,
         params: Option<IndexMap<String, String>>,
     ) -> Self {
         Self {
@@ -291,9 +291,9 @@ impl BarsResponse {
             client_id,
             bar_type,
             data,
-            ts_init,
             start,
             end,
+            ts_init,
             params,
         }
     }

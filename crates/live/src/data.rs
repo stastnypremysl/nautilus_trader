@@ -142,9 +142,9 @@ pub trait LiveDataClient: DataClient {
             self.client_id(),
             instrument_id,
             quotes,
-            self.get_clock().timestamp_ns(),
             start,
             end,
+            self.get_clock().timestamp_ns(),
             None,
         ));
 

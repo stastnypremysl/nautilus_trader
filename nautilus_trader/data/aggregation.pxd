@@ -125,7 +125,7 @@ cdef class TimeBarAggregator(BarAggregator):
     cpdef void stop(self)
     cdef timedelta _get_interval(self)
     cdef uint64_t _get_interval_ns(self)
-    cpdef void _set_build_timer(self)
+    cdef void _set_build_timer(self)
     cdef void _batch_pre_update(self, uint64_t time_ns)
     cdef void _batch_post_update(self, uint64_t time_ns)
     cpdef void _callback_build_bar(self, TimeEvent event)

@@ -928,7 +928,7 @@ cdef class TimeBarAggregator(BarAggregator):
             )
 
 
-    cpdef void _set_build_timer(self):
+    cdef void _set_build_timer(self):
         cdef int step = self.bar_type.spec.step
         self._timer_name = str(self.bar_type)
         cdef datetime now = self._clock.utc_now()

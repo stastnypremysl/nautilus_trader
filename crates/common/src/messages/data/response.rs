@@ -179,9 +179,9 @@ pub struct QuotesResponse {
     pub client_id: ClientId,
     pub instrument_id: InstrumentId,
     pub data: Vec<QuoteTick>,
-    pub ts_init: UnixNanos,
     pub start: Option<UnixNanos>,
     pub end: Option<UnixNanos>,
+    pub ts_init: UnixNanos,
     pub params: Option<IndexMap<String, String>>,
 }
 
@@ -197,9 +197,9 @@ impl QuotesResponse {
         client_id: ClientId,
         instrument_id: InstrumentId,
         data: Vec<QuoteTick>,
-        ts_init: UnixNanos,
         start: Option<UnixNanos>,
         end: Option<UnixNanos>,
+        ts_init: UnixNanos,
         params: Option<IndexMap<String, String>>,
     ) -> Self {
         Self {
@@ -207,9 +207,9 @@ impl QuotesResponse {
             client_id,
             instrument_id,
             data,
-            ts_init,
             start,
             end,
+            ts_init,
             params,
         }
     }
@@ -221,9 +221,9 @@ pub struct TradesResponse {
     pub client_id: ClientId,
     pub instrument_id: InstrumentId,
     pub data: Vec<TradeTick>,
-    pub ts_init: UnixNanos,
     pub start: Option<UnixNanos>,
     pub end: Option<UnixNanos>,
+    pub ts_init: UnixNanos,
     pub params: Option<IndexMap<String, String>>,
 }
 

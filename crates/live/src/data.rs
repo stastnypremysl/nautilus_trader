@@ -142,8 +142,8 @@ pub trait LiveDataClient: DataClient {
             self.client_id(),
             instrument_id,
             quotes,
-            start,
-            end,
+            start.unwrap_or(UnixNanos::default()),
+            end.unwrap_or(UnixNanos::default()),
             self.get_clock().timestamp_ns(),
             None,
         ));
@@ -165,8 +165,8 @@ pub trait LiveDataClient: DataClient {
             instrument_id,
             trades,
             self.get_clock().timestamp_ns(),
-            start,
-            end,
+            start.unwrap_or(UnixNanos::default()),
+            end.unwrap_or(UnixNanos::default()),
             None,
         ));
 
@@ -187,8 +187,8 @@ pub trait LiveDataClient: DataClient {
             bar_type,
             bars,
             self.get_clock().timestamp_ns(),
-            start,
-            end,
+            start.unwrap_or(UnixNanos::default()),
+            end.unwrap_or(UnixNanos::default()),
             None,
         ));
 

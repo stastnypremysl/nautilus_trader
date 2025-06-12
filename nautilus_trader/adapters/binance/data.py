@@ -537,15 +537,6 @@ class BinanceCommonDataClient(LiveMarketDataClient):
     # -- REQUESTS ---------------------------------------------------------------------------------
 
     async def _request_instrument(self, request: RequestInstrument) -> None:
-        if request.start is not None:
-            self._log.warning(
-                f"Requesting instrument {request.instrument_id} with specified `start` which has no effect",
-            )
-
-        if request.end is not None:
-            self._log.warning(
-                f"Requesting instrument {request.instrument_id} with specified `end` which has no effect",
-            )
 
         instrument: Instrument | None = self._instrument_provider.find(request.instrument_id)
         if instrument is None:

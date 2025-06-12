@@ -283,15 +283,6 @@ class InteractiveBrokersDataClient(LiveMarketDataClient):
         )
 
     async def _request_instrument(self, request: RequestInstrument) -> None:
-        if request.start is not None:
-            self._log.warning(
-                f"Requesting instrument {request.instrument_id} with specified `start` which has no effect",
-            )
-
-        if request.end is not None:
-            self._log.warning(
-                f"Requesting instrument {request.instrument_id} with specified `end` which has no effect",
-            )
 
         force_reload = request.params.get("force_reload", False)
         await self.instrument_provider.load_async(request.instrument_id, force_reload=force_reload)

@@ -319,15 +319,6 @@ class TardisDataClient(LiveMarketDataClient):
         self._dispose_websocket_client_by_key(ws_client_key)
 
     async def _request_instrument(self, request: RequestInstrument) -> None:
-        if request.start is not None:
-            self._log.warning(
-                f"Requesting instrument {request.instrument_id} with specified `start` which has no effect",
-            )
-
-        if request.end is not None:
-            self._log.warning(
-                f"Requesting instrument {request.instrument_id} with specified `end` which has no effect",
-            )
 
         instrument: Instrument | None = self._instrument_provider.find(request.instrument_id)
         if instrument is None:
@@ -337,15 +328,6 @@ class TardisDataClient(LiveMarketDataClient):
         self._handle_instrument(instrument, request.id, request.start, request.end, request.params)
 
     async def _request_instruments(self, request: RequestInstruments) -> None:
-        if request.start is not None:
-            self._log.warning(
-                f"Requesting instruments for {request.venue} with specified `start` which has no effect",
-            )
-
-        if request.end is not None:
-            self._log.warning(
-                f"Requesting instruments for {request.venue} with specified `end` which has no effect",
-            )
 
         all_instruments = self._instrument_provider.get_all()
         target_instruments = []

@@ -77,6 +77,7 @@ cdef class BarAggregator:
     cpdef void set_partial(self, Bar partial_bar)
     cpdef void start_batch_update(self, object handler, uint64_t time_ns)
     cpdef void stop_batch_update(self, uint64_t time_ns)
+    cdef void _stop_batch_update(self, uint64_t time_ns)
     cdef void _apply_update(self, Price price, Quantity size, uint64_t ts_event)
     cdef void _apply_update_bar(self, Bar bar, Quantity volume, uint64_t ts_init)
     cdef void _build_now_and_send(self)
@@ -126,4 +127,5 @@ cdef class TimeBarAggregator(BarAggregator):
     cpdef void _set_build_timer(self)
     cdef void _batch_pre_update(self, uint64_t time_ns)
     cdef void _batch_post_update(self, uint64_t time_ns)
+    cdef void _stop_batch_update(self, uint64_t time_ns)
     cpdef void _callback_build_bar(self, TimeEvent event)

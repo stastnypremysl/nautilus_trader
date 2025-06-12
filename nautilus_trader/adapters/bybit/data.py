@@ -216,9 +216,9 @@ class BybitDataClient(LiveMarketDataClient):
             data=tickers,
             correlation_id=id,
             response_id=UUID4(),
-            ts_init=self._clock.timestamp_ns(),
             start=unix_nanos_to_dt(self._clock.timestamp_ns()),
             end=unix_nanos_to_dt(self._clock.timestamp_ns()),
+            ts_init=self._clock.timestamp_ns(),
         )
         self._msgbus.response(data)
 

@@ -310,7 +310,7 @@ cdef class BarAggregator:
         self._batch_mode = False
         self.is_running = False # is_running means that an aggregator receives data from the message bus
 
-    def start_batch_update(self, handler: Callable[[Bar], None], uint64_t time_ns) -> None:
+    cpdef void start_batch_update(self, object handler, uint64_t time_ns):
         self._batch_mode = True
         self._handler_backup = self._handler
         self._handler = handler
@@ -319,7 +319,7 @@ cdef class BarAggregator:
     def _start_batch_time(self, uint64_t time_ns):
         pass
 
-    def stop_batch_update(self, uint64_t time_ns) -> None:
+    cpdef void stop_batch_update(self, uint64_t time_ns):
         self._stop_batch_update(time_ns)
         self._batch_mode = False
         self._handler = self._handler_backup

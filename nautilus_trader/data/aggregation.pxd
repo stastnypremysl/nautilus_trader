@@ -75,6 +75,8 @@ cdef class BarAggregator:
     cpdef void handle_trade_tick(self, TradeTick tick)
     cpdef void handle_bar(self, Bar bar)
     cpdef void set_partial(self, Bar partial_bar)
+    cpdef void start_batch_update(self, object handler, uint64_t time_ns)
+    cpdef void stop_batch_update(self, uint64_t time_ns)
     cdef void _apply_update(self, Price price, Quantity size, uint64_t ts_event)
     cdef void _apply_update_bar(self, Bar bar, Quantity volume, uint64_t ts_init)
     cdef void _build_now_and_send(self)

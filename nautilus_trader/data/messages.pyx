@@ -2293,8 +2293,8 @@ cdef class DataResponse(Response):
             UUID4 correlation_id not None,
             UUID4 response_id not None,
             uint64_t ts_init,
-            datetime start: datetime | None = None,
-            datetime end: datetime | None = None,
+            datetime start,
+            datetime end,
             dict[str, object] params: dict | None = None,
     ) -> None:
         Condition.is_true(client_id or venue, "Both `client_id` and `venue` were None")

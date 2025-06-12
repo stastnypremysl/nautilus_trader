@@ -476,7 +476,7 @@ class BybitDataClient(LiveMarketDataClient):
             self._log.error(f"Cannot find instrument for {request.instrument_id}")
             return
 
-        self._handle_instrument(instrument, request.id, request.params, request.start, request.end)
+        self._handle_instrument(instrument, request.id, request.start, request.end, request.params)
 
     async def _request_instruments(self, request: RequestInstruments) -> None:
         if request.start is not None:
@@ -496,13 +496,8 @@ class BybitDataClient(LiveMarketDataClient):
                 target_instruments.append(instrument)
 
         self._handle_instruments(
-            request.venue,
-            target_instruments,
-            request.id,
-            request.params,
-            request.start,
-            request.end,
-        )
+            request.venue, target_instruments, request.id, request.start, request.end,
+        , request.params)
 
     async def _request_quote_ticks(self, request: RequestQuoteTicks) -> None:
         self._log.error(
@@ -530,7 +525,7 @@ class BybitDataClient(LiveMarketDataClient):
             ts_init=self._clock.timestamp_ns(),
         )
 
-        self._handle_trade_ticks(request.instrument_id, trades, request.id, request.params, request.start, request.end)
+        self._handle_trade_ticks(request.instrument_id, trades, request.id, request.start, request.end, request.params)
 
     async def _request_bars(self, request: RequestBars) -> None:
         if request.bar_type.is_internally_aggregated():
@@ -573,7 +568,7 @@ class BybitDataClient(LiveMarketDataClient):
             timestamp_on_close=self._bars_timestamp_on_close,
         )
         partial: Bar = bars.pop()
-        self._handle_bars(request.bar_type, bars, partial, request.id, request.params, request.start, request.end)
+        self._handle_bars(request.bar_type, bars, partial, request.id, request.start, request.end, request.params)
 
     async def _handle_ticker_data_request(self, symbol: Symbol, correlation_id: UUID4) -> None:
         bybit_symbol = BybitSymbol(symbol.value)

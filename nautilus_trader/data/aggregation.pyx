@@ -314,10 +314,9 @@ cdef class BarAggregator:
         self._batch_mode = True
         self._handler_backup = self._handler
         self._handler = handler
-        self._start_batch_time(time_ns)
+        self._start_batch_update(time_ns)
 
-    def _start_batch_time(self, uint64_t time_ns):
-        # Handler type: Callable[[Bar], None]
+    cdef void _start_batch_update(self, uint64_t time_ns):
         pass
 
     cpdef void stop_batch_update(self, uint64_t time_ns):
@@ -977,7 +976,7 @@ cdef class TimeBarAggregator(BarAggregator):
         else:
             BarAggregator._build_and_send(self, ts_event, ts_init)
 
-    def _start_batch_time(self, uint64_t time_ns):
+    cdef void _start_batch_update(self, uint64_t time_ns):
         cdef int step = self.bar_type.spec.step
         self._batch_mode = True
 

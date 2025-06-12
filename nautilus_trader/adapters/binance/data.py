@@ -552,7 +552,7 @@ class BinanceCommonDataClient(LiveMarketDataClient):
             self._log.error(f"Cannot find instrument for {request.instrument_id}")
             return
 
-        self._handle_instrument(instrument, request.id, request.params, request.start, request.end)
+        self._handle_instrument(instrument, request.id, request.start, request.end, request.params)
 
     async def _request_quote_ticks(self, request: RequestQuoteTicks) -> None:
         self._log.error(
@@ -592,7 +592,7 @@ class BinanceCommonDataClient(LiveMarketDataClient):
                 ts_init=self._clock.timestamp_ns(),
             )
 
-        self._handle_trade_ticks(request.instrument_id, ticks, request.id, request.params, request.start, request.end)
+        self._handle_trade_ticks(request.instrument_id, ticks, request.id, request.start, request.end, request.params)
 
     async def _request_bars(self, request: RequestBars) -> None:
         if request.bar_type.spec.price_type != PriceType.LAST:
@@ -667,7 +667,7 @@ class BinanceCommonDataClient(LiveMarketDataClient):
             )
 
         partial: Bar = bars.pop()
-        self._handle_bars(request.bar_type, bars, partial, request.id, request.params, request.start, request.end)
+        self._handle_bars(request.bar_type, bars, partial, request.id, request.start, request.end, request.params)
 
     async def _request_order_book_snapshot(self, request: RequestOrderBookSnapshot) -> None:
         if request.limit not in [5, 10, 20, 50, 100, 500, 1000]:

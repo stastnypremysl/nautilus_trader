@@ -319,21 +319,10 @@ cdef class BarAggregator:
     cdef void _start_batch_update(self, uint64_t time_ns):
         pass
 
-    cdef void _stop_batch_update_impl(self, uint64_t time_ns):
+    cpdef void stop_batch_update(self, uint64_t time_ns):
         self._stop_batch_update(time_ns)
         self._batch_mode = False
         self._handler = self._handler_backup
-
-    def stop_batch_update(self, *args):
-        """Method that accepts 0 or 1 arguments for backward compatibility"""
-        if len(args) == 0:
-            time_ns = 0
-        elif len(args) == 1:
-            time_ns = args[0]
-        else:
-            raise TypeError(f"stop_batch_update() takes at most 1 argument ({len(args)} given)")
-        
-        self._stop_batch_update_impl(time_ns)
 
     cdef void _stop_batch_update(self, uint64_t time_ns):
         pass

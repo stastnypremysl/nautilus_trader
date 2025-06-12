@@ -497,7 +497,7 @@ class BybitDataClient(LiveMarketDataClient):
 
         self._handle_instruments(
             request.venue, target_instruments, request.id, request.start, request.end,
-        , request.params)
+            request.params)
 
     async def _request_quote_ticks(self, request: RequestQuoteTicks) -> None:
         self._log.error(

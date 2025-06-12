@@ -1021,7 +1021,7 @@ class DatabentoDataClient(LiveMarketDataClient):
         self._handle_bars(
             bar_type=request.bar_type, bars=bars, partial=None, # No partials
             correlation_id=request.id, start=request.start, end=request.end,
-        , params=request.params)
+            params=request.params)
 
     def _handle_msg_pyo3(
         self,

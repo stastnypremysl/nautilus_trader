@@ -524,14 +524,12 @@ class BybitDataClient(LiveMarketDataClient):
         if limit == 0 or limit > 1000:
             limit = 1000
 
-        if request.start is not None:
-            self._log.error(
-                "Cannot specify `start` for historical trades: Bybit only provides 'recent trades'",
-            )
-        if request.end is not None:
-            self._log.error(
-                "Cannot specify `end` for historical trades: Bybit only provides 'recent trades'",
-            )
+        self._log.error(
+            "Cannot specify `start` for historical trades: Bybit only provides 'recent trades'",
+        )
+        self._log.error(
+            "Cannot specify `end` for historical trades: Bybit only provides 'recent trades'",
+        )
 
         trades = await self._http_market.request_bybit_trades(
             instrument_id=request.instrument_id,
@@ -563,12 +561,8 @@ class BybitDataClient(LiveMarketDataClient):
             return
 
         bybit_interval = self._enum_parser.parse_bybit_kline(request.bar_type)
-        start_time_ms = None
-        if request.start is not None:
-            start_time_ms = secs_to_millis(request.start.timestamp())
-        end_time_ms = None
-        if request.end is not None:
-            end_time_ms = secs_to_millis(request.end.timestamp())
+        start_time_ms = secs_to_millis(request.start.timestamp())
+        end_time_ms = secs_to_millis(request.end.timestamp())
 
         self._log.debug(f"Requesting klines {start_time_ms=}, {end_time_ms=}, {request.limit=}")
 

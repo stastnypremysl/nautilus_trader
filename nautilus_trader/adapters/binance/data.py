@@ -572,12 +572,11 @@ class BinanceCommonDataClient(LiveMarketDataClient):
             limit = 1000
 
         if not self._use_agg_trade_ticks:
-            if request.start is not None or request.end is not None:
-                self._log.warning(
-                    "Trades have been requested with a from/to time range, "
-                    f"however the request will be for the most recent {limit}: "
-                    "consider using aggregated trades (`use_agg_trade_ticks`)",
-                )
+            self._log.warning(
+                "Trades have been requested with a from/to time range, "
+                f"however the request will be for the most recent {limit}: "
+                "consider using aggregated trades (`use_agg_trade_ticks`)",
+            )
             ticks = await self._http_market.request_trade_ticks(
                 instrument_id=request.instrument_id,
                 limit=limit,
@@ -585,12 +584,8 @@ class BinanceCommonDataClient(LiveMarketDataClient):
             )
         else:
             # Convert from timestamps to milliseconds
-            start_time_ms = None
-            end_time_ms = None
-            if request.start:
-                start_time_ms = int(request.start.timestamp() * 1000)
-            if request.end:
-                end_time_ms = int(request.end.timestamp() * 1000)
+            start_time_ms = int(request.start.timestamp() * 1000)
+            end_time_ms = int(request.end.timestamp() * 1000)
             ticks = await self._http_market.request_agg_trade_ticks(
                 instrument_id=request.instrument_id,
                 limit=limit,
@@ -609,13 +604,8 @@ class BinanceCommonDataClient(LiveMarketDataClient):
             )
             return
 
-        start_time_ms = None
-        if request.start is not None:
-            start_time_ms = secs_to_millis(request.start.timestamp())
-
-        end_time_ms = None
-        if request.end is not None:
-            end_time_ms = secs_to_millis(request.end.timestamp())
+        start_time_ms = secs_to_millis(request.start.timestamp())
+        end_time_ms = secs_to_millis(request.end.timestamp())
 
         if (
             request.bar_type.is_externally_aggregated()

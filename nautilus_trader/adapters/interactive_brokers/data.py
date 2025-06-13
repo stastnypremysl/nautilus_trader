@@ -419,19 +419,12 @@ class InteractiveBrokersDataClient(LiveMarketDataClient):
 
         limit = request.limit
 
-        if not request.start and limit == 0:
+        if limit == 0:
             limit = 1000
 
         end = request.end
-
-        if not request.end:
-            end = pd.Timestamp.utcnow()
-
-        if request.start:
-            duration = end - request.start
-            duration_str = timedelta_to_duration_str(duration)
-        else:
-            duration_str = "7 D" if request.bar_type.spec.timedelta.total_seconds() >= 60 else "1 D"
+        duration = end - request.start
+        duration_str = timedelta_to_duration_str(duration)
 
         bars: list[Bar] = []
 
@@ -446,8 +439,8 @@ class InteractiveBrokersDataClient(LiveMarketDataClient):
             )
             bars.extend(bars_part)
 
-            if not bars_part or request.start:
-                break
+            # Since request.start is always non-None, we break after the first iteration
+            break
 
             end = pd.Timestamp(min(bars, key=attrgetter("ts_event")).ts_event, tz="UTC")
 

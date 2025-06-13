@@ -120,7 +120,15 @@ class MockMarketDataClient(MarketDataClient):
         )
 
     def request_bars(self, request: RequestBars) -> None:
-        self._handle_bars(request.bar_type, self.bars, None, request.id, request.start, request.end, request.params)
+        self._handle_bars(
+            request.bar_type,
+            self.bars,
+            None,
+            request.id,
+            request.start,
+            request.end,
+            request.params,
+        )
 
 
 _AUDUSD_SIM = TestInstrumentProvider.default_fx_ccy("AUD/USD")

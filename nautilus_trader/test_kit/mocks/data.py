@@ -81,10 +81,23 @@ class MockMarketDataClient(MarketDataClient):
         self.bars: list[Bar] = []
 
     def request_instrument(self, request: RequestInstrument) -> None:
-        self._handle_instrument(self.instrument, request.id, request.start, request.end, request.params)
+        self._handle_instrument(
+            self.instrument,
+            request.id,
+            request.start,
+            request.end,
+            request.params,
+        )
 
     def request_instruments(self, request: RequestInstruments) -> None:
-        self._handle_instruments(request.venue, self.instruments, request.id, request.start, request.end, request.params)
+        self._handle_instruments(
+            request.venue,
+            self.instruments,
+            request.id,
+            request.start,
+            request.end,
+            request.params,
+        )
 
     def request_quote_ticks(self, request: RequestQuoteTicks) -> None:
         self._handle_quote_ticks(

@@ -310,8 +310,13 @@ class PolymarketDataClient(LiveMarketDataClient):
                 target_instruments.append(instrument)
 
         self._handle_instruments(
-            request.venue, target_instruments, request.id, request.start, request.end,
-            request.params)
+            request.venue,
+            target_instruments,
+            request.id,
+            request.start,
+            request.end,
+            request.params,
+        )
 
     async def _request_quote_ticks(self, request: RequestQuoteTicks) -> None:
         self._log.error("Cannot request historical quotes: not published by Polymarket")

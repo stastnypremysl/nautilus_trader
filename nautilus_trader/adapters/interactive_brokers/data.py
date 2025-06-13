@@ -290,7 +290,7 @@ class InteractiveBrokersDataClient(LiveMarketDataClient):
         start_ns = dt_to_unix_nanos(request.start)
         end_ns = dt_to_unix_nanos(request.end)
         
-        if abs(start_ns - now_ns) > 1_000_000:  # More than 1ms difference
+        if abs(start_ns - now_ns) > 10_000_000:  # More than 10ms difference
             self._log.warning(
                 f"Requesting instrument {request.instrument_id} with specified `start` which has no effect",
             )

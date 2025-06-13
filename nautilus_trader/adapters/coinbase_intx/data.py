@@ -265,18 +265,20 @@ class CoinbaseIntxDataClient(LiveMarketDataClient):
         # Check if start/end times are too far from current time
         now = self._clock.utc_now()
         now_ns = dt_to_unix_nanos(now)
-        start_ns = dt_to_unix_nanos(request.start)
-        end_ns = dt_to_unix_nanos(request.end)
         
-        if abs(start_ns - now_ns) > 1_000_000:  # More than 1ms difference
-            self._log.warning(
-                f"Requesting instrument {request.instrument_id} with specified `start` which has no effect",
-            )
+        if request.start is not None:
+            start_ns = dt_to_unix_nanos(request.start)
+            if abs(start_ns - now_ns) > 1_000_000:  # More than 1ms difference
+                self._log.warning(
+                    f"Requesting instrument {request.instrument_id} with specified `start` which has no effect",
+                )
 
-        if abs(end_ns - now_ns) > 10_000_000:  # More than 10ms difference  
-            self._log.warning(
-                f"Requesting instrument {request.instrument_id} with specified `end` which has no effect",
-            )
+        if request.end is not None:
+            end_ns = dt_to_unix_nanos(request.end)
+            if abs(end_ns - now_ns) > 10_000_000:  # More than 10ms difference  
+                self._log.warning(
+                    f"Requesting instrument {request.instrument_id} with specified `end` which has no effect",
+                )
 
         instrument: Instrument | None = self._instrument_provider.find(request.instrument_id)
         if instrument is None:
@@ -289,24 +291,31 @@ class CoinbaseIntxDataClient(LiveMarketDataClient):
         # Check if start/end times are too far from current time
         now = self._clock.utc_now()
         now_ns = dt_to_unix_nanos(now)
-        start_ns = dt_to_unix_nanos(request.start)
-        end_ns = dt_to_unix_nanos(request.end)
         
-        if abs(start_ns - now_ns) > 1_000_000:  # More than 1ms difference
-            self._log.warning(
-                f"Requesting instruments for {request.venue} with specified `start` which has no effect",
-            )
+        if request.start is not None:
+            start_ns = dt_to_unix_nanos(request.start)
+            if abs(start_ns - now_ns) > 1_000_000:  # More than 1ms difference
+                self._log.warning(
+                    f"Requesting instruments for {request.venue} with specified `start` which has no effect",
+                )
 
-        if abs(end_ns - now_ns) > 10_000_000:  # More than 10ms difference
-            self._log.warning(
-                f"Requesting instruments for {request.venue} with specified `end` which has no effect",
-            )
+        if request.end is not None:
+            end_ns = dt_to_unix_nanos(request.end)
+            if abs(end_ns - now_ns) > 10_000_000:  # More than 10ms difference
+                self._log.warning(
+                    f"Requesting instruments for {request.venue} with specified `end` which has no effect",
+                )
 
         instruments = self._instrument_provider.get_all()
 
         self._handle_instruments(
-            request.venue, instruments, request.id, request.start, request.end,
-            request.params)
+            request.venue,
+            instruments,
+            request.id,
+            request.start,
+            request.end,
+            request.params,
+        )
 
     async def _request_quote_ticks(self, request: RequestQuoteTicks) -> None:
         self._log.error(

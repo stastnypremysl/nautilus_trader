@@ -59,6 +59,7 @@ from nautilus_trader.model.data import TradeTick
 from nautilus_trader.model.identifiers import ClientId
 from nautilus_trader.model.identifiers import InstrumentId
 from nautilus_trader.model.instruments.currency_pair import CurrencyPair
+from nautilus_trader.core.datetime import dt_to_unix_nanos
 
 
 # fmt: on
@@ -283,6 +284,21 @@ class InteractiveBrokersDataClient(LiveMarketDataClient):
         )
 
     async def _request_instrument(self, request: RequestInstrument) -> None:
+        # Check if start/end times are too far from current time
+        now = self._clock.utc_now()
+        now_ns = dt_to_unix_nanos(now)
+        start_ns = dt_to_unix_nanos(request.start)
+        end_ns = dt_to_unix_nanos(request.end)
+        
+        if abs(start_ns - now_ns) > 1_000_000:  # More than 1ms difference
+            self._log.warning(
+                f"Requesting instrument {request.instrument_id} with specified `start` which has no effect",
+            )
+
+        if abs(end_ns - now_ns) > 10_000_000:  # More than 10ms difference  
+            self._log.warning(
+                f"Requesting instrument {request.instrument_id} with specified `end` which has no effect",
+            )
 
         force_reload = request.params.get("force_reload", False)
         await self.instrument_provider.load_async(request.instrument_id, force_reload=force_reload)

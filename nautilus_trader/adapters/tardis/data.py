@@ -31,6 +31,7 @@ from nautilus_trader.common.component import LiveClock
 from nautilus_trader.common.component import MessageBus
 from nautilus_trader.common.enums import LogColor
 from nautilus_trader.core import nautilus_pyo3
+from nautilus_trader.core.datetime import dt_to_unix_nanos
 from nautilus_trader.data.messages import RequestBars
 from nautilus_trader.data.messages import RequestInstrument
 from nautilus_trader.data.messages import RequestInstruments
@@ -319,6 +320,21 @@ class TardisDataClient(LiveMarketDataClient):
         self._dispose_websocket_client_by_key(ws_client_key)
 
     async def _request_instrument(self, request: RequestInstrument) -> None:
+        # Check if start/end times are too far from current time
+        now = self._clock.utc_now()
+        now_ns = dt_to_unix_nanos(now)
+        start_ns = dt_to_unix_nanos(request.start)
+        end_ns = dt_to_unix_nanos(request.end)
+        
+        if abs(start_ns - now_ns) > 1_000_000:  # More than 1ms difference
+            self._log.warning(
+                f"Requesting instrument {request.instrument_id} with specified `start` which has no effect",
+            )
+
+        if abs(end_ns - now_ns) > 10_000_000:  # More than 10ms difference  
+            self._log.warning(
+                f"Requesting instrument {request.instrument_id} with specified `end` which has no effect",
+            )
 
         instrument: Instrument | None = self._instrument_provider.find(request.instrument_id)
         if instrument is None:
@@ -328,6 +344,21 @@ class TardisDataClient(LiveMarketDataClient):
         self._handle_instrument(instrument, request.id, request.start, request.end, request.params)
 
     async def _request_instruments(self, request: RequestInstruments) -> None:
+        # Check if start/end times are too far from current time
+        now = self._clock.utc_now()
+        now_ns = dt_to_unix_nanos(now)
+        start_ns = dt_to_unix_nanos(request.start)
+        end_ns = dt_to_unix_nanos(request.end)
+        
+        if abs(start_ns - now_ns) > 1_000_000:  # More than 1ms difference
+            self._log.warning(
+                f"Requesting instruments for {request.venue} with specified `start` which has no effect",
+            )
+
+        if abs(end_ns - now_ns) > 10_000_000:  # More than 10ms difference
+            self._log.warning(
+                f"Requesting instruments for {request.venue} with specified `end` which has no effect",
+            )
 
         all_instruments = self._instrument_provider.get_all()
         target_instruments = []

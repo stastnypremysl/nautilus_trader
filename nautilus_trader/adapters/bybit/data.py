@@ -43,6 +43,7 @@ from nautilus_trader.adapters.bybit.schemas.ws import decoder_ws_orderbook
 from nautilus_trader.adapters.bybit.schemas.ws import decoder_ws_trade
 from nautilus_trader.adapters.bybit.websocket.client import BybitWebSocketClient
 from nautilus_trader.common.enums import LogColor
+from nautilus_trader.core.datetime import dt_to_unix_nanos
 from nautilus_trader.core.datetime import millis_to_nanos
 from nautilus_trader.core.datetime import secs_to_millis
 from nautilus_trader.core.datetime import unix_nanos_to_dt
@@ -462,6 +463,21 @@ class BybitDataClient(LiveMarketDataClient):
             await self._handle_ticker_data_request(symbol, request.id)
 
     async def _request_instrument(self, request: RequestInstrument) -> None:
+        # Check if start/end times are too far from current time
+        now = self._clock.utc_now()
+        now_ns = dt_to_unix_nanos(now)
+        start_ns = dt_to_unix_nanos(request.start)
+        end_ns = dt_to_unix_nanos(request.end)
+        
+        if abs(start_ns - now_ns) > 1_000_000:  # More than 1ms difference
+            self._log.warning(
+                f"Requesting instrument {request.instrument_id} with specified `start` which has no effect",
+            )
+
+        if abs(end_ns - now_ns) > 10_000_000:  # More than 10ms difference  
+            self._log.warning(
+                f"Requesting instrument {request.instrument_id} with specified `end` which has no effect",
+            )
 
         instrument: Instrument | None = self._instrument_provider.find(request.instrument_id)
         if instrument is None:
@@ -471,6 +487,21 @@ class BybitDataClient(LiveMarketDataClient):
         self._handle_instrument(instrument, request.id, request.start, request.end, request.params)
 
     async def _request_instruments(self, request: RequestInstruments) -> None:
+        # Check if start/end times are too far from current time
+        now = self._clock.utc_now()
+        now_ns = dt_to_unix_nanos(now)
+        start_ns = dt_to_unix_nanos(request.start)
+        end_ns = dt_to_unix_nanos(request.end)
+        
+        if abs(start_ns - now_ns) > 1_000_000:  # More than 1ms difference
+            self._log.warning(
+                f"Requesting instruments for {request.venue} with specified `start` which has no effect",
+            )
+
+        if abs(end_ns - now_ns) > 10_000_000:  # More than 10ms difference
+            self._log.warning(
+                f"Requesting instruments for {request.venue} with specified `end` which has no effect",
+            )
 
         all_instruments = self._instrument_provider.get_all()
         target_instruments = []

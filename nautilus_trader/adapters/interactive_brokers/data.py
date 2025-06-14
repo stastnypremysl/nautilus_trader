@@ -425,7 +425,7 @@ class InteractiveBrokersDataClient(LiveMarketDataClient):
         bars: list[Bar] = []
         end = request.end
 
-        while len(bars) < limit if limit > 0 else True:
+        while (request.start and end > request.start) or (len(bars) < limit > 0):
             bars_part: list[Bar] = await self._client.get_historical_bars(
                 bar_type=request.bar_type,
                 contract=IBContract(**instrument.info["contract"]),
@@ -434,19 +434,12 @@ class InteractiveBrokersDataClient(LiveMarketDataClient):
                 duration=duration_str,
                 timeout=self._request_timeout,
             )
-            
-            if not bars_part:
-                break
-                
             bars.extend(bars_part)
 
-            # Update end for next iteration if needed
-            if bars and (not limit or len(bars) < limit):
-                end = pd.Timestamp(min(bars_part, key=attrgetter("ts_event")).ts_event, tz="UTC")
-                if end <= request.start:
-                    break
-            else:
-                break
+            # Since request.start is always non-None, we break after the first iteration
+            break
+
+            end = pd.Timestamp(min(bars, key=attrgetter("ts_event")).ts_event, tz="UTC")
 
         if bars:
             bars = list(set(bars))

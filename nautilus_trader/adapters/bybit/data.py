@@ -538,7 +538,7 @@ class BybitDataClient(LiveMarketDataClient):
         
         if (now_ns - start_ns) > one_day_ns:
             self._log.error(
-                "Cannot specify `start` for historical trades: Bybit only provides '1 day old trades'",
+                "Cannot specify `start` older then 1 day for historical trades: Bybit only provides '1 day old trades'",
             )
 
 

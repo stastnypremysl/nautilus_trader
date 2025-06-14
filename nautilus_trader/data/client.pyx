@@ -211,7 +211,7 @@ cdef class DataClient(Component):
     cpdef void _handle_data(self, Data data):
         self._msgbus.send(endpoint="DataEngine.process", msg=data)
 
-    cpdef void _handle_data_response(self, DataType data_type, data, UUID4 correlation_id, dict[str, object] params):
+    cpdef void _handle_data_response(self, DataType data_type, object data, UUID4 correlation_id, dict[str, object] params):
         cdef DataResponse response = DataResponse(
             client_id=self.id,
             venue=self.venue,
@@ -1085,8 +1085,8 @@ cdef class MarketDataClient(DataClient):
             response_id=UUID4(),
             start=start,
             end=end,
-            params=params,
             ts_init=self._clock.timestamp_ns(),
+            params=params,
         )
 
         self._msgbus.send(endpoint="DataEngine.response", msg=response)
@@ -1101,8 +1101,8 @@ cdef class MarketDataClient(DataClient):
             response_id=UUID4(),
             start=start,
             end=end,
-            params=params,
             ts_init=self._clock.timestamp_ns(),
+            params=params,
         )
 
         self._msgbus.send(endpoint="DataEngine.response", msg=response)
@@ -1117,8 +1117,8 @@ cdef class MarketDataClient(DataClient):
             response_id=UUID4(),
             start=start,
             end=end,
-            params=params,
             ts_init=self._clock.timestamp_ns(),
+            params=params,
         )
 
         self._msgbus.send(endpoint="DataEngine.response", msg=response)
@@ -1133,8 +1133,8 @@ cdef class MarketDataClient(DataClient):
             response_id=UUID4(),
             start=start,
             end=end,
-            params=params,
             ts_init=self._clock.timestamp_ns(),
+            params=params,
         )
 
         self._msgbus.send(endpoint="DataEngine.response", msg=response)
@@ -1149,13 +1149,13 @@ cdef class MarketDataClient(DataClient):
             response_id=UUID4(),
             start=start,
             end=end,
-            params=params,
             ts_init=self._clock.timestamp_ns(),
+            params=params,
         )
 
         self._msgbus.send(endpoint="DataEngine.response", msg=response)
 
-    cpdef void _handle_data_response(self, DataType data_type, data, UUID4 correlation_id, dict[str, object] params):
+    cpdef void _handle_data_response(self, DataType data_type, object data, UUID4 correlation_id, dict[str, object] params):
         cdef DataResponse response = DataResponse(
             client_id=self.id,
             venue=self.venue,

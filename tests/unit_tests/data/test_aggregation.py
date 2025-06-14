@@ -2359,14 +2359,12 @@ class TestTimeBarAggregator:
 
         handle_tick(tick1)
         events = clock.advance_time(initial_next_close)
-        if events:
-            events[0].handle()
+        events[0].handle()
 
         handle_tick(tick2)
         second_next_close = aggregator.next_close_ns
         events = clock.advance_time(second_next_close)
-        if events:
-            events[0].handle()
+        events[0].handle()
 
         allowed_diff_ns = 10
 

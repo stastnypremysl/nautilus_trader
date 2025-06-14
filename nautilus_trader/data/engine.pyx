@@ -2133,9 +2133,9 @@ cdef class DataEngine(Component):
             self._log.warning("_handle_aggregated_bars: No data to aggregate")
             return result
 
-        # Extract start and end time from original request parameters
-        cdef uint64_t start_ns = dt_to_unix_nanos(params["start"])
-        cdef uint64_t end_ns = dt_to_unix_nanos(params["end"])
+        # Extract start and end time from original request timing
+        cdef uint64_t start_ns = dt_to_unix_nanos(response.start)
+        cdef uint64_t end_ns = dt_to_unix_nanos(response.end)
 
         cdef dict bars_result = {}
 
@@ -2170,20 +2170,18 @@ cdef class DataEngine(Component):
 
             aggregated_bars = []
             handler = aggregated_bars.append
+            aggregator.start_batch_update(handler, start_ns)
 
             if params["bars_market_data_type"] == "quote_ticks" and not bar_type.is_composite():
-                aggregator.start_batch_update(handler, ticks[0].ts_event)
                 for tick in ticks:
                     aggregator.handle_quote_tick(tick)
             elif params["bars_market_data_type"] == "trade_ticks" and not bar_type.is_composite():
-                aggregator.start_batch_update(handler, ticks[0].ts_event)
                 for tick in ticks:
                     aggregator.handle_trade_tick(tick)
             else:
                 input_bars = bars_result[bar_type.composite()]
 
                 if len(input_bars) > 0:
-                    aggregator.start_batch_update(handler, input_bars[0].ts_init)
                     for bar in input_bars:
                         aggregator.handle_bar(bar)
 

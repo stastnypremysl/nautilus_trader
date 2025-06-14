@@ -1533,8 +1533,8 @@ cdef class DataEngine(Component):
         cdef datetime now = self._clock.utc_now()
         cdef datetime used_start_catalog = start_catalog
         cdef datetime used_end_catalog = end_catalog
-        cdef datetime used_start_request = request.start if request.start is not None else time_object_to_dt(0)
-        cdef datetime used_end_request = request.end if request.end is not None else now
+        cdef datetime used_start_request = request.start
+        cdef datetime used_end_request = request.end
 
         if query_past_data:
             used_start_catalog = min_date(used_start_catalog, now)

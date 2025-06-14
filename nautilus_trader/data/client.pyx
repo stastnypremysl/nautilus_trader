@@ -13,8 +13,6 @@
 #  limitations under the License.
 # -------------------------------------------------------------------------------------------------
 
-from typing import Any
-
 from nautilus_trader.common.config import NautilusConfig
 
 from cpython.datetime cimport datetime
@@ -213,7 +211,7 @@ cdef class DataClient(Component):
     cpdef void _handle_data(self, Data data):
         self._msgbus.send(endpoint="DataEngine.process", msg=data)
 
-    cpdef void _handle_data_response(self, DataType data_type, Any data, UUID4 correlation_id, dict[str, object] params):
+    cpdef void _handle_data_response(self, DataType data_type, object data, UUID4 correlation_id, dict[str, object] params):
         cdef DataResponse response = DataResponse(
             client_id=self.id,
             venue=self.venue,
@@ -1157,7 +1155,7 @@ cdef class MarketDataClient(DataClient):
 
         self._msgbus.send(endpoint="DataEngine.response", msg=response)
 
-    cpdef void _handle_data_response(self, DataType data_type, Any data, UUID4 correlation_id, dict[str, object] params):
+    cpdef void _handle_data_response(self, DataType data_type, object data, UUID4 correlation_id, dict[str, object] params):
         cdef DataResponse response = DataResponse(
             client_id=self.id,
             venue=self.venue,

@@ -1149,8 +1149,8 @@ cdef class MarketDataClient(DataClient):
             response_id=UUID4(),
             start=start,
             end=end,
-            ts_init=self._clock.timestamp_ns(),
             params=params,
+            ts_init=self._clock.timestamp_ns(),
         )
 
         self._msgbus.send(endpoint="DataEngine.response", msg=response)

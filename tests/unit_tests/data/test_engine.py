@@ -2886,11 +2886,11 @@ class TestDataEngine:
 
         last_4_minute_bar = Bar(
             BarType.from_str("ESU4.GLBX-4-MINUTE-LAST-INTERNAL"),
-            Price.from_str("5527.75"),
+            Price.from_str("5527.50"),
             Price.from_str("5528.50"),
-            Price.from_str("5527.25"),
+            Price.from_str("5527.50"),
             Price.from_str("5528.50"),
-            Quantity.from_int(247),
+            Quantity.from_int(116),
             1719877920000000000,
             1719877920000000000,
         )
@@ -2989,7 +2989,7 @@ class TestDataEngine:
             Price.from_str("5528.75"),
             Price.from_str("5528.50"),
             Price.from_str("5528.75"),
-            Quantity.from_int(10244),
+            Quantity.from_int(5806),
             1719878400000000000,
             1719878400000000000,
         )
@@ -3006,10 +3006,9 @@ class TestDataEngine:
         )
 
         assert handler[0].data["bars"][bar_type_1.standard()][-1] == last_1_minute_bar
-        # Note: Skipping composite bar test due to aggregation complexity
-        # assert handler[0].data["bars"][bar_type_2.standard()][-1] == last_2_minute_bar
+        assert handler[0].data["bars"][bar_type_2.standard()][-1] == last_2_minute_bar
 
-        bars_2 = self.cache.bars(bar_type_1.standard())  # Check base bars instead
+        bars_2 = self.cache.bars(bar_type_2.standard())
         assert bars_2
 
     def test_request_aggregated_bars_with_trades(self):
@@ -3081,11 +3080,11 @@ class TestDataEngine:
         # Assert
         last_1_minute_bar = Bar(
             BarType.from_str("ESU4.GLBX-1-MINUTE-LAST-INTERNAL"),
-            Price.from_str("5528.75"),
+            Price.from_str("5528.50"),
             Price.from_str("5528.75"),
             Price.from_str("5528.50"),
             Price.from_str("5528.75"),
-            Quantity.from_int(41),
+            Quantity.from_int(23),
             1719878400000000000,
             1719878400000000000,
         )
@@ -3102,10 +3101,9 @@ class TestDataEngine:
         )
 
         assert handler[0].data["bars"][bar_type_1.standard()][-1] == last_1_minute_bar
-        # Note: Skipping composite bar test due to aggregation complexity
-        # assert handler[0].data["bars"][bar_type_2.standard()][-1] == last_2_minute_bar
+        assert handler[0].data["bars"][bar_type_2.standard()][-1] == last_2_minute_bar
 
-        bars_2 = self.cache.bars(bar_type_1.standard())  # Check base bars instead
+        bars_2 = self.cache.bars(bar_type_2.standard())
         assert bars_2
 
     # TODO: Implement with new Rust datafusion backend"

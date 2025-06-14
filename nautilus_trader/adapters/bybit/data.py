@@ -529,12 +529,21 @@ class BybitDataClient(LiveMarketDataClient):
         if limit == 0 or limit > 1000:
             limit = 1000
 
-        self._log.error(
-            "Cannot specify `start` for historical trades: Bybit only provides 'recent trades'",
-        )
-        self._log.error(
-            "Cannot specify `end` for historical trades: Bybit only provides 'recent trades'",
-        )
+        # Check if request is for trades older than one day
+        now = self._clock.utc_now()
+        now_ns = dt_to_unix_nanos(now)
+        start_ns = dt_to_unix_nanos(request.start)
+        end_ns = dt_to_unix_nanos(request.end)
+        one_day_ns = 86_400_000_000_000  # One day in nanoseconds
+        
+        if (now_ns - start_ns) > one_day_ns:
+            self._log.error(
+                "Cannot specify `start` for historical trades: Bybit only provides '1 day old trades'",
+            )
+        if (now_ns - end_ns) > one_day_ns:
+            self._log.error(
+                "Cannot specify `end` for historical trades: Bybit only provides '1 day old trades'",
+            )
 
         trades = await self._http_market.request_bybit_trades(
             instrument_id=request.instrument_id,

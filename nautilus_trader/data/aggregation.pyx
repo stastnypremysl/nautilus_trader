@@ -977,8 +977,6 @@ cdef class TimeBarAggregator(BarAggregator):
             BarAggregator._build_and_send(self, ts_event, ts_init)
 
     cdef void _start_batch_update(self, uint64_t time_ns):
-        self._batch_mode = True
-
         cdef datetime given_start_time = unix_nanos_to_dt(time_ns)
         cdef datetime start_time = self.get_start_time(given_start_time)
 

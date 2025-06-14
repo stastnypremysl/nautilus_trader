@@ -540,10 +540,7 @@ class BybitDataClient(LiveMarketDataClient):
             self._log.error(
                 "Cannot specify `start` for historical trades: Bybit only provides '1 day old trades'",
             )
-        if (now_ns - end_ns) > one_day_ns:
-            self._log.error(
-                "Cannot specify `end` for historical trades: Bybit only provides '1 day old trades'",
-            )
+
 
         trades = await self._http_market.request_bybit_trades(
             instrument_id=request.instrument_id,
@@ -551,7 +548,13 @@ class BybitDataClient(LiveMarketDataClient):
             ts_init=self._clock.timestamp_ns(),
         )
 
-        self._handle_trade_ticks(request.instrument_id, trades, request.id, request.start, request.end, request.params)
+        # Filter trades to only include those within the requested time range
+        filtered_trades = [
+            trade for trade in trades
+            if start_ns <= trade.ts_init <= end_ns
+        ]
+
+        self._handle_trade_ticks(request.instrument_id, filtered_trades, request.id, request.start, request.end, request.params)
 
     async def _request_bars(self, request: RequestBars) -> None:
         if request.bar_type.is_internally_aggregated():

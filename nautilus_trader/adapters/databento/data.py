@@ -919,7 +919,7 @@ class DatabentoDataClient(LiveMarketDataClient):
         )
         instruments = instruments_from_pyo3(pyo3_instruments)
 
-        self._handle_instruments(request.venue, instruments, request.id, request.start, request.end, request.params)
+        self._handle_instruments(instruments, request.id, request.start, request.end, request.params)
 
     async def _request_quote_ticks(self, request: RequestQuoteTicks) -> None:
         dataset: Dataset = self._loader.get_dataset_for_venue(request.instrument_id.venue)

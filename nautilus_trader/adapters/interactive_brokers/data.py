@@ -419,11 +419,7 @@ class InteractiveBrokersDataClient(LiveMarketDataClient):
 
         limit = request.limit
 
-        if limit == 0:
-            limit = 1000
-
-        end = request.end
-        duration = end - request.start
+        duration = request.end - request.start
         duration_str = timedelta_to_duration_str(duration)
 
         bars: list[Bar] = []

@@ -2270,9 +2270,9 @@ cdef class DataResponse(Response):
         The response ID.
     ts_init : uint64_t
         UNIX timestamp (nanoseconds) when the object was initialized.
-    start : datetime, optional
+    start : datetime
         The start datetime (UTC) of response time range (inclusive).
-    end : datetime, optional
+    end : datetime
         The end datetime (UTC) of response time range.
     params : dict[str, object], optional
         Additional parameters for the response.

@@ -14,6 +14,7 @@ on:
     branches:
       - develop
       - nightly
+      - test-windows
 
 env:
   PACKAGE_DIR: python
@@ -123,35 +124,35 @@ jobs:
           pip install --upgrade maturin
           maturin build --release --out ../dist
 
-      - name: Upload wheel artifact
-        uses: ./.github/actions/upload-artifact-wheel
-
-  publish:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write # Required for deleting artifacts
-      contents: read
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      CLOUDFLARE_R2_URL: ${{ secrets.CLOUDFLARE_R2_URL }}
-      CLOUDFLARE_R2_REGION: "auto"
-      CLOUDFLARE_R2_BUCKET_NAME: "packages"
-      CLOUDFLARE_R2_PREFIX: "v2/simple/nautilus-trader"
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49 # v2.12.2
-        with:
-          egress-policy: audit
-
-      - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Publish wheels to Cloudflare R2 (v2 bucket)
-        uses: ./.github/actions/publish-wheels
-
-      - name: Fetch and delete artifacts for current run
-        shell: bash
-        run: |
-          bash ./scripts/ci/publish-wheels-delete-artifacts.sh
+  #     - name: Upload wheel artifact
+  #       uses: ./.github/actions/upload-artifact-wheel
+  #
+  # publish:
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     actions: write # Required for deleting artifacts
+  #     contents: read
+  #   env:
+  #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #     CLOUDFLARE_R2_URL: ${{ secrets.CLOUDFLARE_R2_URL }}
+  #     CLOUDFLARE_R2_REGION: "auto"
+  #     CLOUDFLARE_R2_BUCKET_NAME: "packages"
+  #     CLOUDFLARE_R2_PREFIX: "v2/simple/nautilus-trader"
+  #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #   steps:
+  #     - uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49 # v2.12.2
+  #       with:
+  #         egress-policy: audit
+  #
+  #     - name: Checkout repository
+  #       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+  #
+  #     - name: Publish wheels to Cloudflare R2 (v2 bucket)
+  #       uses: ./.github/actions/publish-wheels
+  #
+  #     - name: Fetch and delete artifacts for current run
+  #       shell: bash
+  #       run: |
+  #         bash ./scripts/ci/publish-wheels-delete-artifacts.sh

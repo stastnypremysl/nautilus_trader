@@ -274,7 +274,7 @@ jobs:
         python-version:
           - "3.11"
           - "3.12"
-          - "3.13.2" # pinned to 3.13.2, see https://github.com/nautechsystems/nautilus_trader/blob/develop/docs/getting_started/installation.md
+          - "3.13"
     defaults:
       run:
         shell: bash
